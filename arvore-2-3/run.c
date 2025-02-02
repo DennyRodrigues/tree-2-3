@@ -7,6 +7,7 @@
 
 #define MAX_WORD_LENGTH 100
 #define INITIAL_LINES_CAPACITY 10
+#define MAX_WIDTH 126
 
 // Structure to hold dynamic array of line numbers
 typedef struct
@@ -47,11 +48,11 @@ Node *add(Node *x, Node *n);
 Node *insert(TTTree *tree, const char *key, int line, Node *root, int *distWord);
 bool searchTreeHelper(Node *x, const char *value, LineArray *lines);
 void printLines(FILE *out, LineArray *lines);
-void printNode(FILE *out, Node *x);
 void printTreeHelper(FILE *out, Node *x);
 int findHeight(Node *x);
 void freeNode(Node *node);
 void freeTree(TTTree *tree);
+void printTree(Node *root);
 
 // Initialize tree
 TTTree *createTree()
@@ -108,6 +109,8 @@ bool isLeafNode(Node *x)
 // Add node to existing node
 Node *add(Node *x, Node *n)
 {
+// strcmp compara duas palavras (X e N). Se forem iguais, retorna 0. Se forem diferentes, retorna um valor positivo se X for maior que N (primeiro caractere diferente tem ASCII maior) ou negativo se X for menor que N (primeiro caractere diferente tem ASCII menor).
+
   if (x->rightKey == NULL)
   {
     if (strcmp(x->leftKey, n->leftKey) < 0)
@@ -248,6 +251,8 @@ void buildTree(TTTree *tree, FILE *input)
 
   while (fgets(buffer, sizeof(buffer), input))
   {
+    printTree(tree->root);
+
     char *token = strtok(buffer, " \n");
     while (token != NULL)
     {
@@ -338,72 +343,6 @@ bool searchTreeHelper(Node *x, const char *value, LineArray *lines)
   }
 }
 
-// Print lines
-void printLines(FILE *out, LineArray *lines)
-{
-  if (lines->size > 0)
-  {
-    fprintf(out, " %d", lines->lines[0]);
-    for (int i = 1; i < lines->size; i++)
-    {
-      fprintf(out, ", %d", lines->lines[i]);
-    }
-  }
-}
-
-// Print node
-void printNode(FILE *out, Node *x)
-{
-  if (x != NULL)
-  {
-    if (x->rightKey == NULL)
-    {
-      fprintf(out, "%-30s", x->leftKey);
-      printLines(out, &x->leftLines);
-      fprintf(out, "\n");
-    }
-    else
-    {
-      fprintf(out, "%-30s", x->leftKey);
-      printLines(out, &x->leftLines);
-      fprintf(out, "\n");
-      fprintf(out, "%-30s", x->rightKey);
-      printLines(out, &x->rightLines);
-      fprintf(out, "\n");
-    }
-  }
-}
-
-// Print tree helper
-void printTreeHelper(FILE *out, Node *x)
-{
-  if (x != NULL)
-  {
-    if (isLeafNode(x))
-    {
-      printNode(out, x);
-    }
-    else
-    {
-      printTreeHelper(out, x->left);
-      fprintf(out, "%-30s", x->leftKey);
-      printLines(out, &x->leftLines);
-      fprintf(out, "\n");
-      if (x->middle)
-      {
-        printTreeHelper(out, x->middle);
-        if (x->rightKey != NULL)
-        {
-          fprintf(out, "%-30s", x->rightKey);
-          printLines(out, &x->rightLines);
-          fprintf(out, "\n");
-        }
-      }
-      printTreeHelper(out, x->right);
-    }
-  }
-}
-
 // Find height
 int findHeight(Node *x)
 {
@@ -465,68 +404,111 @@ void freeTree(TTTree *tree)
     free(tree);
   }
 }
+// Helper function to get the number of nodes at a specific level
+int getNodesAtLevel(Node *root, int level)
+{
+  if (root == NULL || level < 0)
+    return 0;
+  if (level == 0)
+    return 1;
 
-void printSpaces(int level) {
-    for (int i = 0; i < level * 4; i++) {
-        printf(" ");
-    }
+  int count = getNodesAtLevel(root->left, level - 1);
+  if (root->middle)
+    count += getNodesAtLevel(root->middle, level - 1);
+  if (root->right)
+    count += getNodesAtLevel(root->right, level - 1);
+  return count;
 }
 
-void printVisualNode(Node* node, int level) {
-    printSpaces(level);
-    printf("└─ %s", node->leftKey);
-    if (node->leftLines.size > 0) {
-        printf(" (lines:");
-        for (int i = 0; i < node->leftLines.size; i++) {
-            printf(" %d", node->leftLines.lines[i]);
-        }
-        printf(")");
-    }
-    printf("\n");
-
-    if (node->rightKey != NULL) {
-        printSpaces(level);
-        printf("└─ %s", node->rightKey);
-        if (node->rightLines.size > 0) {
-            printf(" (lines:");
-            for (int i = 0; i < node->rightLines.size; i++) {
-                printf(" %d", node->rightLines.lines[i]);
-            }
-            printf(")");
-        }
-        printf("\n");
-    }
+// Print spaces for alignment
+void printSpaces(int count)
+{
+  for (int i = 0; i < count; i++)
+  {
+    printf(" ");
+  }
 }
 
-void printVisualTree(Node* root, int level) {
-    if (root != NULL) {
-        printVisualNode(root, level);
-        
-        if (!isLeafNode(root)) {
-            if (root->left) printVisualTree(root->left, level + 1);
-            if (root->middle) printVisualTree(root->middle, level + 1);
-            if (root->right) printVisualTree(root->right, level + 1);
-        }
-    }
+// Print a single node
+void printNode(Node *node)
+{
+  if (node == NULL)
+    return;
+  if (node->rightKey == NULL)
+    printf("[%s]", node->leftKey);
+  else
+    printf("[%s|%s]", node->leftKey, node->rightKey);
 }
+
+// Calculate the position adjustment based on node type and position
+int getPositionAdjustment(Node *parent, Node *current)
+{
+  if (parent == NULL)
+    return 0;
+
+  // For two-node parent
+  if (parent->rightKey == NULL)
+  {
+    if (current == parent->left)
+      return -1;
+    if (current == parent->middle)
+      return 1;
+  }
+
+  return 0;
+}
+
+void printTreeLevel(Node *root, Node *parent, int level, int currentLevel, int spacing)
+{
+  if (root == NULL)
+    return;
+
+  if (level == currentLevel)
+  {
+    int adjustment = getPositionAdjustment(parent, root);
+    printSpaces(spacing);
+    printNode(root);
+    return;
+  }
+
+  if (!isLeafNode(root))
+  {
+    int childSpacing = spacing ;
+
+    // Adjust spacing based on whether it's a 2-node or 3-node
+    if (root->rightKey == NULL)
+    {
+      // For 2-node
+      printTreeLevel(root->left, root, level, currentLevel + 1, childSpacing);
+      printTreeLevel(root->middle, root, level, currentLevel + 1, childSpacing);
+    }
+    else
+    {
+      // For 3-node
+      printTreeLevel(root->left, root, level, currentLevel + 1, childSpacing);
+      printTreeLevel(root->middle, root, level, currentLevel + 1, childSpacing);
+      printTreeLevel(root->right, root, level, currentLevel + 1, childSpacing);
+    }
+  }
+}
+
+void printTree(Node *root)
+{
+  printf("\n=== 2-3 Tree Visualization ===\n\n");
+
+  int height = findHeight(root);
+  int initialSpacing = MAX_WIDTH / 2;
+
+  for (int i = 0; i < height; i++)
+  {
+    printTreeLevel(root, NULL, i, 0, initialSpacing);
+    printf("\n\n");
+    initialSpacing /= 2;
+  }
+}
+
 int main(int argc, char *argv[])
 {
-  // Create test file
-  FILE *testFile = fopen("input.txt", "w");
-  if (testFile != NULL)
-  {
-    fprintf(testFile, "The quick brown fox\n");
-    fprintf(testFile, "jumps over the lazy\n");
-    fprintf(testFile, "dog while the cat sleeps\n");
-    fclose(testFile);
-  }
-  else
-  {
-    printf("Error creating test file!\n");
-    return 1;
-  }
-
-  // Create and build tree
   TTTree *tree = createTree();
   FILE *input = fopen("input.txt", "r");
 
@@ -535,34 +517,14 @@ int main(int argc, char *argv[])
     buildTree(tree, input);
     fclose(input);
 
-    printf("\n=== Tree Visualization ===\n\n");
-    printVisualTree(tree->root, 0);
+    // Print tree with improved visualization
+    printTree(tree->root);
 
     printf("\n=== Tree Statistics ===\n");
     printf("Total words: %d\n", tree->wordCount);
     printf("Tree height: %d\n", findHeight(tree->root));
 
-    // Example search
-    printf("\n=== Search Example ===\n");
-    const char *searchWord = "fox";
-    LineArray searchResult;
-    searchResult.lines = NULL;
-    searchResult.size = 0;
-    searchResult.capacity = 0;
-
-    if (searchTreeHelper(tree->root, searchWord, &searchResult))
-    {
-      printf("Found '%s' in lines:", searchWord);
-      for (int i = 0; i < searchResult.size; i++)
-      {
-        printf(" %d", searchResult.lines[i]);
-      }
-      printf("\n");
-    }
-    else
-    {
-      printf("Word '%s' not found\n", searchWord);
-    }
+    // ... rest of your main function ...
 
     freeTree(tree);
   }
@@ -571,6 +533,5 @@ int main(int argc, char *argv[])
     printf("Error opening input file!\n");
     return 1;
   }
-
   return 0;
 }
