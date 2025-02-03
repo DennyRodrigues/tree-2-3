@@ -54,6 +54,7 @@ void freeNode(Node *node);
 void freeTree(TTTree *tree);
 void printTree(Node *root);
 
+
 // Initialize tree
 TTTree *createTree()
 {
@@ -109,7 +110,7 @@ bool isLeafNode(Node *x)
 // Add node to existing node
 Node *add(Node *x, Node *n)
 {
-// strcmp compara duas palavras (X e N). Se forem iguais, retorna 0. Se forem diferentes, retorna um valor positivo se X for maior que N (primeiro caractere diferente tem ASCII maior) ou negativo se X for menor que N (primeiro caractere diferente tem ASCII menor).
+  // strcmp compara duas palavras (X e N). Se forem iguais, retorna 0. Se forem diferentes, retorna um valor positivo se X for maior que N (primeiro caractere diferente tem ASCII maior) ou negativo se X for menor que N (primeiro caractere diferente tem ASCII menor).
 
   if (x->rightKey == NULL)
   {
@@ -404,21 +405,6 @@ void freeTree(TTTree *tree)
     free(tree);
   }
 }
-// Helper function to get the number of nodes at a specific level
-int getNodesAtLevel(Node *root, int level)
-{
-  if (root == NULL || level < 0)
-    return 0;
-  if (level == 0)
-    return 1;
-
-  int count = getNodesAtLevel(root->left, level - 1);
-  if (root->middle)
-    count += getNodesAtLevel(root->middle, level - 1);
-  if (root->right)
-    count += getNodesAtLevel(root->right, level - 1);
-  return count;
-}
 
 // Print spaces for alignment
 void printSpaces(int count)
@@ -473,7 +459,7 @@ void printTreeLevel(Node *root, Node *parent, int level, int currentLevel, int s
 
   if (!isLeafNode(root))
   {
-    int childSpacing = spacing ;
+    int childSpacing = spacing;
 
     // Adjust spacing based on whether it's a 2-node or 3-node
     if (root->rightKey == NULL)
@@ -507,6 +493,68 @@ void printTree(Node *root)
   }
 }
 
+// Updated getUserInput function with better error handling
+int getUserInput(TTTree *tree)
+{
+  int opcao;
+  char letra[100];
+
+  printf("\nEscolha o que você deseja fazer com a árvore:\n");
+  printf("1 para inserir\n");
+  printf("2 para deletar algum elemento\n");
+  printf("Opção: ");
+
+  if (scanf("%d", &opcao) != 1)
+  {
+    while (getchar() != '\n')
+      ; // Clear input buffer
+    printf("Entrada inválida!\n");
+    return 0;
+  }
+
+  if (opcao == 1)
+  {
+    printf("Entre alguma palavra para adicionar na árvore: ");
+    if (scanf("%99s", letra) != 1)
+    {
+      printf("Erro na leitura da palavra!\n");
+      return 0;
+    }
+
+    // Insert word
+    if (tree->wordCount >= tree->wordCapacity)
+    {
+      int newCapacity = tree->wordCapacity * 2;
+      char **newWords = realloc(tree->words, sizeof(char *) * newCapacity);
+      if (!newWords)
+      {
+        printf("Erro de alocação de memória!\n");
+        return 0;
+      }
+      tree->words = newWords;
+      tree->wordCapacity = newCapacity;
+    }
+
+    int distWords = 0;
+    tree->words[tree->wordCount] = strdup(letra);
+    tree->root = insert(tree, letra, 1, tree->root, &distWords);
+    tree->wordCount++;
+
+    printf("Palavra '%s' inserida com sucesso!\n", letra);
+  }
+  else if (opcao == 2)
+  {
+    printf("Entre qual elemento você deseja deletar: ");
+    printf("Feature ainda não implementada");
+    if (scanf("%99s", letra) != 1)
+    {
+      printf("Erro na leitura da palavra!\n");
+      return 0;
+    }
+  }
+  return 0;
+}
+
 int main(int argc, char *argv[])
 {
   TTTree *tree = createTree();
@@ -520,11 +568,12 @@ int main(int argc, char *argv[])
     // Print tree with improved visualization
     printTree(tree->root);
 
-    printf("\n=== Tree Statistics ===\n");
-    printf("Total words: %d\n", tree->wordCount);
-    printf("Tree height: %d\n", findHeight(tree->root));
+    while (1)
+    {
+      getUserInput(tree);
 
-    // ... rest of your main function ...
+      printTree(tree->root);
+    }
 
     freeTree(tree);
   }
