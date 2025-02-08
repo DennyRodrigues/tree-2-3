@@ -6,83 +6,56 @@
 #include <stdbool.h>
 
 #define MAX_WORD_LENGTH 100
-#define INITIAL_LINES_CAPACITY 10
 #define MAX_WIDTH 126
-
-// Structure to hold dynamic array of line numbers
-typedef struct
-{
-  int *lines;
-  int size;
-  int capacity;
-} LineArray;
 
 // Node structure
 typedef struct Node
 {
   char *chaveNaEsquerda;
   char *chaveNaDireita;
-  LineArray leftLines;
-  LineArray rightLines;
   struct Node *ponteiroDaEsquerda;
   struct Node *ponteiroDoMeio;
   struct Node *ponteiroDaDireita;
 } Node;
 
-// Tree structure
+// Arvore structure
 typedef struct
 {
   Node *root;
   char **words;  // Array to store all words
   int wordCount; // Total number of words
   int wordCapacity;
-} TTTree;
+} Arvore;
 
-// Function prototypes
-LineArray createLineArray();
-void freeLineArray(LineArray *arr);
-Node *createNode(const char *x);
-bool isLeafNode(Node *x);
-Node *adicionar(Node *x, Node *n);
-Node *inserirNaArvore(TTTree *tree, const char *key, int line, Node *root, int *distWord);
-bool searchTreeHelper(Node *x, const char *value, LineArray *lines);
-void printLines(FILE *out, LineArray *lines);
-void printTreeHelper(FILE *out, Node *x);
-int findHeight(Node *x);
+Node *CriarNovoNode(const char *x);
+bool verificaSeNodeEhFolha(Node *x);
+Node *adicionarNode(Node *x, Node *n);
+Node *inserirNaArvore(Arvore *arvore, const char *key, Node *root);
+bool buscarNaArvore(Node *x, const char *value);
+void imprimirArvoreHelper(FILE *out, Node *x);
+int calcularAltura(Node *x);
 void freeNode(Node *node);
-void freeTree(TTTree *tree);
-void printTree(Node *root);
+void freeArvore(Arvore *arvore);
+void imprimirArvore(Node *root);
 
 
-// Initialize tree
-TTTree *createTree()
+// Initialize arvore
+Arvore *CriarArvore()
 {
-  TTTree *tree = (TTTree *)malloc(sizeof(TTTree));
-  tree->root = NULL;
-  tree->words = (char **)malloc(sizeof(char *) * 1000); // Initial capacity
-  tree->wordCount = 0;
-  tree->wordCapacity = 1000;
-  return tree;
-}
-
-// Create and initialize line array
-LineArray createLineArray()
-{
-  LineArray arr;
-  arr.lines = (int *)malloc(sizeof(int) * INITIAL_LINES_CAPACITY);
-  arr.size = 0;
-  arr.capacity = INITIAL_LINES_CAPACITY;
-  return arr;
+  Arvore *arvore = (Arvore *)malloc(sizeof(Arvore));
+  arvore->root = NULL;
+  arvore->words = (char **)malloc(sizeof(char *) * 1000); // Initial capacity
+  arvore->wordCount = 0;
+  arvore->wordCapacity = 1000;
+  return arvore;
 }
 
 // Create new node
-Node *createNode(const char *x)
+Node *CriarNovoNode(const char *x)
 {
   Node *t = (Node *)malloc(sizeof(Node));
   t->chaveNaEsquerda = strdup(x);
   t->chaveNaDireita = NULL;
-  t->leftLines = createLineArray();
-  t->rightLines = createLineArray();
   t->ponteiroDaEsquerda = NULL;
   t->ponteiroDoMeio = NULL;
   t->ponteiroDaDireita = NULL;
@@ -90,31 +63,29 @@ Node *createNode(const char *x)
 }
 
 // Check if node is leaf
-bool isLeafNode(Node *x)
+bool verificaSeNodeEhFolha(Node *x)
 {
   return (x->ponteiroDaEsquerda == NULL && x->ponteiroDoMeio == NULL && x->ponteiroDaDireita == NULL);
 }
 
 // Add node to existing node
-Node *adicionar(Node *x, Node *n)
+Node *adicionarNode(Node *x, Node *n)
 {
-  // strcmp compara duas palavras (X e N). Se forem iguais, retorna 0. Se forem diferentes, retorna um valor positivo se X for maior que N (primeiro caractere diferente tem ASCII maior) ou negativo se X for menor que N (primeiro caractere diferente tem ASCII menor).
+  // strcmp compara duas palavras (X e N). Se forem iguais, retorna 0. Se forem diferentes, retorna um valor positivo se X for maior que N (o primeiro caractere diferente tem ASCII maior) ou negativo se X for menor que N (primeiro caractere diferente tem ASCII menor).
+  // Resumindo: Ajuda a organizar palavras de acordo com o ASCII, permitindo organizar as palavras em ordem alfabética sem precisar criar loops para checkar cada letra da palavra.
 
   if (x->chaveNaDireita == NULL)
   {
     if (strcmp(x->chaveNaEsquerda, n->chaveNaEsquerda) < 0)
     {
       x->chaveNaDireita = strdup(n->chaveNaEsquerda);
-      x->rightLines = n->leftLines;
       x->ponteiroDoMeio = n->ponteiroDaEsquerda;
       x->ponteiroDaDireita = n->ponteiroDoMeio;
     }
     else
     {
       x->chaveNaDireita = strdup(x->chaveNaEsquerda);
-      x->rightLines = x->leftLines;
       x->chaveNaEsquerda = strdup(n->chaveNaEsquerda);
-      x->leftLines = n->leftLines;
       x->ponteiroDaDireita = x->ponteiroDoMeio;
       x->ponteiroDoMeio = n->ponteiroDoMeio;
       x->ponteiroDaEsquerda = n->ponteiroDaEsquerda;
@@ -127,8 +98,7 @@ Node *adicionar(Node *x, Node *n)
   // Add to left
   if (strcmp(x->chaveNaEsquerda, n->chaveNaEsquerda) >= 0)
   {
-    Node *newNode = createNode(x->chaveNaEsquerda);
-    newNode->leftLines = x->leftLines;
+    Node *newNode = CriarNovoNode(x->chaveNaEsquerda);
     newNode->ponteiroDaEsquerda = n;
     newNode->ponteiroDoMeio = x;
     x->ponteiroDaEsquerda = x->ponteiroDoMeio;
@@ -136,7 +106,6 @@ Node *adicionar(Node *x, Node *n)
     x->ponteiroDaDireita = NULL;
     free(x->chaveNaEsquerda);
     x->chaveNaEsquerda = strdup(x->chaveNaDireita);
-    x->leftLines = x->rightLines;
     free(x->chaveNaDireita);
     x->chaveNaDireita = NULL;
     return newNode;
@@ -144,8 +113,7 @@ Node *adicionar(Node *x, Node *n)
   // Add to center
   else if (strcmp(x->chaveNaDireita, n->chaveNaEsquerda) >= 0)
   {
-    Node *newNode = createNode(x->chaveNaDireita);
-    newNode->leftLines = x->rightLines;
+    Node *newNode = CriarNovoNode(x->chaveNaDireita);
     newNode->ponteiroDaEsquerda = n->ponteiroDoMeio;
     newNode->ponteiroDoMeio = x->ponteiroDaDireita;
     x->ponteiroDoMeio = n->ponteiroDaEsquerda;
@@ -159,8 +127,7 @@ Node *adicionar(Node *x, Node *n)
   // Add to right
   else
   {
-    Node *newNode = createNode(x->chaveNaDireita);
-    newNode->leftLines = x->rightLines;
+    Node *newNode = CriarNovoNode(x->chaveNaDireita);
     newNode->ponteiroDaEsquerda = x;
     newNode->ponteiroDoMeio = n;
     free(x->chaveNaDireita);
@@ -170,13 +137,12 @@ Node *adicionar(Node *x, Node *n)
   }
 }
 
-// Insert key into tree
-Node *inserirNaArvore(TTTree *tree, const char *key, int line, Node *root, int *distWord)
+// Insert key into arvore
+Node *inserirNaArvore(Arvore *arvore, const char *key, Node *root)
 {
   if (root == NULL)
   {
-    Node *newNode = createNode(key);
-    (*distWord)++;
+    Node *newNode = CriarNovoNode(key);
     return newNode;
   }
 
@@ -186,55 +152,53 @@ Node *inserirNaArvore(TTTree *tree, const char *key, int line, Node *root, int *
     return root;
   }
 
-  if (isLeafNode(root))
+  if (verificaSeNodeEhFolha(root))
   {
-    Node *newNode = createNode(key);
-    Node *finalNode = adicionar(root, newNode);
-    (*distWord)++;
+    Node *newNode = CriarNovoNode(key);
+    Node *finalNode = adicionarNode(root, newNode);
     return finalNode;
   }
 
   // Insert recursively
   if (strcmp(key, root->chaveNaEsquerda) < 0)
   {
-    Node *newNode = inserirNaArvore(tree, key, line, root->ponteiroDaEsquerda, distWord);
+    Node *newNode = inserirNaArvore(arvore, key, root->ponteiroDaEsquerda);
     if (newNode == root->ponteiroDaEsquerda)
       return root;
     else
-      return adicionar(root, newNode);
+      return adicionarNode(root, newNode);
   }
   else if (root->chaveNaDireita == NULL || strcmp(key, root->chaveNaDireita) < 0)
   {
-    Node *newNode = inserirNaArvore(tree, key, line, root->ponteiroDoMeio, distWord);
+    Node *newNode = inserirNaArvore(arvore, key, root->ponteiroDoMeio);
     if (newNode == root->ponteiroDoMeio)
       return root;
     else
-      return adicionar(root, newNode);
+      return adicionarNode(root, newNode);
   }
   else
   {
-    Node *newNode = inserirNaArvore(tree, key, line, root->ponteiroDaDireita, distWord);
+    Node *newNode = inserirNaArvore(arvore, key, root->ponteiroDaDireita);
     if (newNode == root->ponteiroDaDireita)
       return root;
     else
-      return adicionar(root, newNode);
+      return adicionarNode(root, newNode);
   }
 }
 
-// Build tree from file
-void buildTree(TTTree *tree, FILE *input)
+// Build arvore from file
+void buildArvore(Arvore *arvore, FILE *input)
 {
   printf("-----------------------------------------------------\n");
   printf("[MSG] BUILDING 2-3 TREE...\n");
 
-  int line = 1, numWords = 0, distWords = 0;
   char buffer[1024];
   char word[MAX_WORD_LENGTH];
   clock_t startTime = clock();
 
   while (fgets(buffer, sizeof(buffer), input))
   {
-    printTree(tree->root);
+    imprimirArvore(arvore->root);
 
     char *token = strtok(buffer, " \n");
     while (token != NULL)
@@ -252,90 +216,74 @@ void buildTree(TTTree *tree, FILE *input)
 
       if (len > 0)
       {
-        if (tree->wordCount >= tree->wordCapacity)
+        if (arvore->wordCount >= arvore->wordCapacity)
         {
-          tree->wordCapacity *= 2;
-          tree->words = realloc(tree->words, sizeof(char *) * tree->wordCapacity);
+          arvore->wordCapacity *= 2;
+          arvore->words = realloc(arvore->words, sizeof(char *) * arvore->wordCapacity);
         }
-        tree->words[tree->wordCount] = strdup(word);
-        tree->wordCount++;
-        tree->root = inserirNaArvore(tree, word, line, tree->root, &distWords);
-        numWords++;
+        arvore->words[arvore->wordCount] = strdup(word);
+        arvore->wordCount++;
+        arvore->root = inserirNaArvore(arvore, word, arvore->root);
       }
       token = strtok(NULL, " \n");
-    }
-    line++;
+    };
   }
 
   double totalTime = (double)(clock() - startTime) / CLOCKS_PER_SEC;
-  int treeHeight = findHeight(tree->root);
+  int arvoreHeight = calcularAltura(arvore->root);
 
   printf("=====================================================\n");
-  printf("- Built Tree results (2-3 Tree)\n");
+  printf("- Built Arvore results (2-3 Arvore)\n");
   printf("=====================================================\n");
-  printf("Total number of words: %d\n", numWords);
-  printf("Total number of distinct words: %d\n", distWords);
   printf("Total time spent building index: %f\n", totalTime);
-  printf("Height of 2-3 Tree is: %d\n", treeHeight);
+  printf("Height of 2-3 Arvore is: %d\n", arvoreHeight);
 }
 
 // Search helper
-bool searchTreeHelper(Node *x, const char *value, LineArray *lines)
+bool buscarNaArvore(Node *x, const char *value)
 {
   if (x == NULL)
   {
     return false;
   }
 
-  if (x->chaveNaEsquerda && strcmp(value, x->chaveNaEsquerda) == 0)
-  {
-    *lines = x->leftLines;
-    return true;
-  }
-
-  if (x->chaveNaDireita && strcmp(value, x->chaveNaDireita) == 0)
-  {
-    *lines = x->rightLines;
-    return true;
-  }
-
-  if (isLeafNode(x))
+  if (verificaSeNodeEhFolha(x))
     return false;
 
   if (x->chaveNaDireita != NULL)
   {
     if (strcmp(value, x->chaveNaEsquerda) < 0)
     {
-      return searchTreeHelper(x->ponteiroDaEsquerda, value, lines);
+      return buscarNaArvore(x->ponteiroDaEsquerda, value);
     }
     else if (strcmp(value, x->chaveNaEsquerda) > 0 && strcmp(value, x->chaveNaDireita) < 0)
     {
-      return searchTreeHelper(x->ponteiroDoMeio, value, lines);
+      return buscarNaArvore(x->ponteiroDoMeio, value);
     }
     else
     {
-      return searchTreeHelper(x->ponteiroDaDireita, value, lines);
+      return buscarNaArvore(x->ponteiroDaDireita, value);
     }
   }
   else
   {
     if (strcmp(value, x->chaveNaEsquerda) < 0)
-      return searchTreeHelper(x->ponteiroDaEsquerda, value, lines);
+      return buscarNaArvore(x->ponteiroDaEsquerda, value);
     else
-      return searchTreeHelper(x->ponteiroDoMeio, value, lines);
+      return buscarNaArvore(x->ponteiroDoMeio, value);
   }
 }
 
 // Find height
-int findHeight(Node *x)
+int calcularAltura(Node *x)
 {
   if (x == NULL)
     return 0;
   else
   {
-    int leftHeight = findHeight(x->ponteiroDaEsquerda);
-    int rightHeight = findHeight(x->ponteiroDaDireita);
-    int middleHeight = findHeight(x->ponteiroDoMeio);
+    int leftHeight = calcularAltura(x->ponteiroDaEsquerda);
+    int rightHeight = calcularAltura(x->ponteiroDaDireita);
+    int middleHeight = calcularAltura(x->ponteiroDoMeio);
 
     int maxHeight = leftHeight;
     if (rightHeight > maxHeight)
@@ -347,15 +295,6 @@ int findHeight(Node *x)
   }
 }
 
-// Free line array
-void freeLineArray(LineArray *arr)
-{
-  free(arr->lines);
-  arr->lines = NULL;
-  arr->size = 0;
-  arr->capacity = 0;
-}
-
 // Free node
 void freeNode(Node *node)
 {
@@ -364,8 +303,6 @@ void freeNode(Node *node)
     free(node->chaveNaEsquerda);
     if (node->chaveNaDireita)
       free(node->chaveNaDireita);
-    freeLineArray(&node->leftLines);
-    freeLineArray(&node->rightLines);
     freeNode(node->ponteiroDaEsquerda);
     freeNode(node->ponteiroDoMeio);
     freeNode(node->ponteiroDaDireita);
@@ -373,18 +310,18 @@ void freeNode(Node *node)
   }
 }
 
-// Free tree
-void freeTree(TTTree *tree)
+// Free arvore
+void freeArvore(Arvore *arvore)
 {
-  if (tree != NULL)
+  if (arvore != NULL)
   {
-    for (int i = 0; i < tree->wordCount; i++)
+    for (int i = 0; i < arvore->wordCount; i++)
     {
-      free(tree->words[i]);
+      free(arvore->words[i]);
     }
-    free(tree->words);
-    freeNode(tree->root);
-    free(tree);
+    free(arvore->words);
+    freeNode(arvore->root);
+    free(arvore);
   }
 }
 
@@ -426,7 +363,7 @@ int getPositionAdjustment(Node *parent, Node *current)
   return 0;
 }
 
-void printTreeLevel(Node *root, Node *parent, int level, int currentLevel, int spacing)
+void printArvoreLevel(Node *root, Node *parent, int level, int currentLevel, int spacing)
 {
   if (root == NULL)
     return;
@@ -439,7 +376,7 @@ void printTreeLevel(Node *root, Node *parent, int level, int currentLevel, int s
     return;
   }
 
-  if (!isLeafNode(root))
+  if (!verificaSeNodeEhFolha(root))
   {
     int childSpacing = spacing;
 
@@ -447,36 +384,36 @@ void printTreeLevel(Node *root, Node *parent, int level, int currentLevel, int s
     if (root->chaveNaDireita == NULL)
     {
       // For 2-node
-      printTreeLevel(root->ponteiroDaEsquerda, root, level, currentLevel + 1, childSpacing);
-      printTreeLevel(root->ponteiroDoMeio, root, level, currentLevel + 1, childSpacing);
+      printArvoreLevel(root->ponteiroDaEsquerda, root, level, currentLevel + 1, childSpacing);
+      printArvoreLevel(root->ponteiroDoMeio, root, level, currentLevel + 1, childSpacing);
     }
     else
     {
       // For 3-node
-      printTreeLevel(root->ponteiroDaEsquerda, root, level, currentLevel + 1, childSpacing);
-      printTreeLevel(root->ponteiroDoMeio, root, level, currentLevel + 1, childSpacing);
-      printTreeLevel(root->ponteiroDaDireita, root, level, currentLevel + 1, childSpacing);
+      printArvoreLevel(root->ponteiroDaEsquerda, root, level, currentLevel + 1, childSpacing);
+      printArvoreLevel(root->ponteiroDoMeio, root, level, currentLevel + 1, childSpacing);
+      printArvoreLevel(root->ponteiroDaDireita, root, level, currentLevel + 1, childSpacing);
     }
   }
 }
 
-void printTree(Node *root)
+void imprimirArvore(Node *root)
 {
-  printf("\n=== 2-3 Tree Visualization ===\n\n");
+  printf("\n=== 2-3 Arvore Visualization ===\n\n");
 
-  int height = findHeight(root);
+  int height = calcularAltura(root);
   int initialSpacing = MAX_WIDTH / 2;
 
   for (int i = 0; i < height; i++)
   {
-    printTreeLevel(root, NULL, i, 0, initialSpacing);
+    printArvoreLevel(root, NULL, i, 0, initialSpacing);
     printf("\n\n");
     initialSpacing /= 2;
   }
 }
 
-// Updated getUserInput function with better error handling
-int getUserInput(TTTree *tree)
+}
+int getUserInput(Arvore *arvore)
 {
   int opcao;
   char letra[100];
@@ -504,60 +441,101 @@ int getUserInput(TTTree *tree)
     }
 
     // Insert word
-    if (tree->wordCount >= tree->wordCapacity)
+    if (arvore->wordCount >= arvore->wordCapacity)
     {
-      int newCapacity = tree->wordCapacity * 2;
-      char **newWords = realloc(tree->words, sizeof(char *) * newCapacity);
+      int newCapacity = arvore->wordCapacity * 2;
+      char **newWords = realloc(arvore->words, sizeof(char *) * newCapacity);
       if (!newWords)
       {
         printf("Erro de alocação de memória!\n");
         return 0;
       }
-      tree->words = newWords;
-      tree->wordCapacity = newCapacity;
+      arvore->words = newWords;
+      arvore->wordCapacity = newCapacity;
     }
 
-    int distWords = 0;
-    tree->words[tree->wordCount] = strdup(letra);
-    tree->root = insert(tree, letra, 1, tree->root, &distWords);
-    tree->wordCount++;
+    arvore->words[arvore->wordCount] = strdup(letra);
+    arvore->root = inserirNaArvore(arvore, letra, arvore->root);
+    arvore->wordCount++;
 
     printf("Palavra '%s' inserida com sucesso!\n", letra);
   }
   else if (opcao == 2)
   {
     printf("Entre qual elemento você deseja deletar: ");
-    printf("Feature ainda não implementada");
     if (scanf("%99s", letra) != 1)
     {
       printf("Erro na leitura da palavra!\n");
       return 0;
     }
+
+    // Check if word exists in arvore
+    Node *current = arvore->root;
+    bool wordFound = false;
+
+    // Search for word in words array
+    for (int i = 0; i < arvore->wordCount; i++)
+    {
+      if (strcmp(arvore->words[i], letra) == 0)
+      {
+        wordFound = true;
+        // Remove word from words array
+        free(arvore->words[i]);
+        for (int j = i; j < arvore->wordCount - 1; j++)
+        {
+          arvore->words[j] = arvore->words[j + 1];
+        }
+        arvore->wordCount--;
+        break;
+      }
+    }
+
+    if (!wordFound)
+    {
+      printf("Palavra '%s' não encontrada na árvore!\n", letra);
+      return 0;
+    }
+
+    // Delete from arvore
+    Node *newRoot = delete (arvore, letra, arvore->root);
+    if (newRoot != arvore->root)
+    {
+      arvore->root = newRoot;
+      printf("Palavra '%s' deletada com sucesso!\n", letra);
+    }
+    else if (!wordFound)
+    {
+      printf("Erro ao deletar a palavra '%s'!\n", letra);
+    }
   }
+  else
+  {
+    printf("Opção inválida!\n");
+  }
+
   return 0;
 }
-
 int main(int argc, char *argv[])
 {
-  TTTree *tree = createTree();
+  Arvore *arvore = CriarArvore();
   FILE *input = fopen("input.txt", "r");
 
   if (input != NULL)
   {
-    buildTree(tree, input);
+    buildArvore(arvore, input);
     fclose(input);
 
-    // Print tree with improved visualization
-    printTree(tree->root);
+    // Print arvore with improved visualization
+    imprimirArvore(arvore->root);
 
     while (1)
     {
-      getUserInput(tree);
+      getUserInput(arvore);
 
-      printTree(tree->root);
+      imprimirArvore(arvore->root);
     }
 
-    freeTree(tree);
+    freeArvore(arvore);
   }
   else
   {
