@@ -20,13 +20,13 @@ typedef struct
 // Node structure
 typedef struct Node
 {
-  char *leftKey;
-  char *rightKey;
+  char *chaveNaEsquerda;
+  char *chaveNaDireita;
   LineArray leftLines;
   LineArray rightLines;
-  struct Node *left;
-  struct Node *middle;
-  struct Node *right;
+  struct Node *ponteiroDaEsquerda;
+  struct Node *ponteiroDoMeio;
+  struct Node *ponteiroDaDireita;
 } Node;
 
 // Tree structure
@@ -40,12 +40,11 @@ typedef struct
 
 // Function prototypes
 LineArray createLineArray();
-void addLine(LineArray *arr, int line);
 void freeLineArray(LineArray *arr);
 Node *createNode(const char *x);
 bool isLeafNode(Node *x);
-Node *add(Node *x, Node *n);
-Node *insert(TTTree *tree, const char *key, int line, Node *root, int *distWord);
+Node *adicionar(Node *x, Node *n);
+Node *inserirNaArvore(TTTree *tree, const char *key, int line, Node *root, int *distWord);
 bool searchTreeHelper(Node *x, const char *value, LineArray *lines);
 void printLines(FILE *out, LineArray *lines);
 void printTreeHelper(FILE *out, Node *x);
@@ -76,166 +75,149 @@ LineArray createLineArray()
   return arr;
 }
 
-// Add line to line array
-void addLine(LineArray *arr, int line)
-{
-  if (arr->size >= arr->capacity)
-  {
-    arr->capacity *= 2;
-    arr->lines = (int *)realloc(arr->lines, sizeof(int) * arr->capacity);
-  }
-  arr->lines[arr->size++] = line;
-}
-
 // Create new node
 Node *createNode(const char *x)
 {
   Node *t = (Node *)malloc(sizeof(Node));
-  t->leftKey = strdup(x);
-  t->rightKey = NULL;
+  t->chaveNaEsquerda = strdup(x);
+  t->chaveNaDireita = NULL;
   t->leftLines = createLineArray();
   t->rightLines = createLineArray();
-  t->left = NULL;
-  t->middle = NULL;
-  t->right = NULL;
+  t->ponteiroDaEsquerda = NULL;
+  t->ponteiroDoMeio = NULL;
+  t->ponteiroDaDireita = NULL;
   return t;
 }
 
 // Check if node is leaf
 bool isLeafNode(Node *x)
 {
-  return (x->left == NULL && x->middle == NULL && x->right == NULL);
+  return (x->ponteiroDaEsquerda == NULL && x->ponteiroDoMeio == NULL && x->ponteiroDaDireita == NULL);
 }
 
 // Add node to existing node
-Node *add(Node *x, Node *n)
+Node *adicionar(Node *x, Node *n)
 {
   // strcmp compara duas palavras (X e N). Se forem iguais, retorna 0. Se forem diferentes, retorna um valor positivo se X for maior que N (primeiro caractere diferente tem ASCII maior) ou negativo se X for menor que N (primeiro caractere diferente tem ASCII menor).
 
-  if (x->rightKey == NULL)
+  if (x->chaveNaDireita == NULL)
   {
-    if (strcmp(x->leftKey, n->leftKey) < 0)
+    if (strcmp(x->chaveNaEsquerda, n->chaveNaEsquerda) < 0)
     {
-      x->rightKey = strdup(n->leftKey);
+      x->chaveNaDireita = strdup(n->chaveNaEsquerda);
       x->rightLines = n->leftLines;
-      x->middle = n->left;
-      x->right = n->middle;
+      x->ponteiroDoMeio = n->ponteiroDaEsquerda;
+      x->ponteiroDaDireita = n->ponteiroDoMeio;
     }
     else
     {
-      x->rightKey = strdup(x->leftKey);
+      x->chaveNaDireita = strdup(x->chaveNaEsquerda);
       x->rightLines = x->leftLines;
-      x->leftKey = strdup(n->leftKey);
+      x->chaveNaEsquerda = strdup(n->chaveNaEsquerda);
       x->leftLines = n->leftLines;
-      x->right = x->middle;
-      x->middle = n->middle;
-      x->left = n->left;
+      x->ponteiroDaDireita = x->ponteiroDoMeio;
+      x->ponteiroDoMeio = n->ponteiroDoMeio;
+      x->ponteiroDaEsquerda = n->ponteiroDaEsquerda;
     }
-    free(n->leftKey);
+    free(n->chaveNaEsquerda);
     free(n);
     return x;
   }
 
   // Add to left
-  if (strcmp(x->leftKey, n->leftKey) >= 0)
+  if (strcmp(x->chaveNaEsquerda, n->chaveNaEsquerda) >= 0)
   {
-    Node *newNode = createNode(x->leftKey);
+    Node *newNode = createNode(x->chaveNaEsquerda);
     newNode->leftLines = x->leftLines;
-    newNode->left = n;
-    newNode->middle = x;
-    x->left = x->middle;
-    x->middle = x->right;
-    x->right = NULL;
-    free(x->leftKey);
-    x->leftKey = strdup(x->rightKey);
+    newNode->ponteiroDaEsquerda = n;
+    newNode->ponteiroDoMeio = x;
+    x->ponteiroDaEsquerda = x->ponteiroDoMeio;
+    x->ponteiroDoMeio = x->ponteiroDaDireita;
+    x->ponteiroDaDireita = NULL;
+    free(x->chaveNaEsquerda);
+    x->chaveNaEsquerda = strdup(x->chaveNaDireita);
     x->leftLines = x->rightLines;
-    free(x->rightKey);
-    x->rightKey = NULL;
+    free(x->chaveNaDireita);
+    x->chaveNaDireita = NULL;
     return newNode;
   }
   // Add to center
-  else if (strcmp(x->rightKey, n->leftKey) >= 0)
+  else if (strcmp(x->chaveNaDireita, n->chaveNaEsquerda) >= 0)
   {
-    Node *newNode = createNode(x->rightKey);
+    Node *newNode = createNode(x->chaveNaDireita);
     newNode->leftLines = x->rightLines;
-    newNode->left = n->middle;
-    newNode->middle = x->right;
-    x->middle = n->left;
-    n->middle = newNode;
-    n->left = x;
-    free(x->rightKey);
-    x->rightKey = NULL;
-    x->right = NULL;
+    newNode->ponteiroDaEsquerda = n->ponteiroDoMeio;
+    newNode->ponteiroDoMeio = x->ponteiroDaDireita;
+    x->ponteiroDoMeio = n->ponteiroDaEsquerda;
+    n->ponteiroDoMeio = newNode;
+    n->ponteiroDaEsquerda = x;
+    free(x->chaveNaDireita);
+    x->chaveNaDireita = NULL;
+    x->ponteiroDaDireita = NULL;
     return n;
   }
   // Add to right
   else
   {
-    Node *newNode = createNode(x->rightKey);
+    Node *newNode = createNode(x->chaveNaDireita);
     newNode->leftLines = x->rightLines;
-    newNode->left = x;
-    newNode->middle = n;
-    free(x->rightKey);
-    x->rightKey = NULL;
-    x->right = NULL;
+    newNode->ponteiroDaEsquerda = x;
+    newNode->ponteiroDoMeio = n;
+    free(x->chaveNaDireita);
+    x->chaveNaDireita = NULL;
+    x->ponteiroDaDireita = NULL;
     return newNode;
   }
 }
 
 // Insert key into tree
-Node *insert(TTTree *tree, const char *key, int line, Node *root, int *distWord)
+Node *inserirNaArvore(TTTree *tree, const char *key, int line, Node *root, int *distWord)
 {
   if (root == NULL)
   {
     Node *newNode = createNode(key);
-    addLine(&newNode->leftLines, line);
     (*distWord)++;
     return newNode;
   }
 
-  if ((root->leftKey && strcmp(key, root->leftKey) == 0) ||
-      (root->rightKey && strcmp(key, root->rightKey) == 0))
+  if ((root->chaveNaEsquerda && strcmp(key, root->chaveNaEsquerda) == 0) ||
+      (root->chaveNaDireita && strcmp(key, root->chaveNaDireita) == 0))
   {
-    if (root->leftKey && strcmp(key, root->leftKey) == 0)
-      addLine(&root->leftLines, line);
-    else
-      addLine(&root->rightLines, line);
     return root;
   }
 
   if (isLeafNode(root))
   {
     Node *newNode = createNode(key);
-    addLine(&newNode->leftLines, line);
-    Node *finalNode = add(root, newNode);
+    Node *finalNode = adicionar(root, newNode);
     (*distWord)++;
     return finalNode;
   }
 
   // Insert recursively
-  if (strcmp(key, root->leftKey) < 0)
+  if (strcmp(key, root->chaveNaEsquerda) < 0)
   {
-    Node *newNode = insert(tree, key, line, root->left, distWord);
-    if (newNode == root->left)
+    Node *newNode = inserirNaArvore(tree, key, line, root->ponteiroDaEsquerda, distWord);
+    if (newNode == root->ponteiroDaEsquerda)
       return root;
     else
-      return add(root, newNode);
+      return adicionar(root, newNode);
   }
-  else if (root->rightKey == NULL || strcmp(key, root->rightKey) < 0)
+  else if (root->chaveNaDireita == NULL || strcmp(key, root->chaveNaDireita) < 0)
   {
-    Node *newNode = insert(tree, key, line, root->middle, distWord);
-    if (newNode == root->middle)
+    Node *newNode = inserirNaArvore(tree, key, line, root->ponteiroDoMeio, distWord);
+    if (newNode == root->ponteiroDoMeio)
       return root;
     else
-      return add(root, newNode);
+      return adicionar(root, newNode);
   }
   else
   {
-    Node *newNode = insert(tree, key, line, root->right, distWord);
-    if (newNode == root->right)
+    Node *newNode = inserirNaArvore(tree, key, line, root->ponteiroDaDireita, distWord);
+    if (newNode == root->ponteiroDaDireita)
       return root;
     else
-      return add(root, newNode);
+      return adicionar(root, newNode);
   }
 }
 
@@ -277,7 +259,7 @@ void buildTree(TTTree *tree, FILE *input)
         }
         tree->words[tree->wordCount] = strdup(word);
         tree->wordCount++;
-        tree->root = insert(tree, word, line, tree->root, &distWords);
+        tree->root = inserirNaArvore(tree, word, line, tree->root, &distWords);
         numWords++;
       }
       token = strtok(NULL, " \n");
@@ -305,13 +287,13 @@ bool searchTreeHelper(Node *x, const char *value, LineArray *lines)
     return false;
   }
 
-  if (x->leftKey && strcmp(value, x->leftKey) == 0)
+  if (x->chaveNaEsquerda && strcmp(value, x->chaveNaEsquerda) == 0)
   {
     *lines = x->leftLines;
     return true;
   }
 
-  if (x->rightKey && strcmp(value, x->rightKey) == 0)
+  if (x->chaveNaDireita && strcmp(value, x->chaveNaDireita) == 0)
   {
     *lines = x->rightLines;
     return true;
@@ -320,27 +302,27 @@ bool searchTreeHelper(Node *x, const char *value, LineArray *lines)
   if (isLeafNode(x))
     return false;
 
-  if (x->rightKey != NULL)
+  if (x->chaveNaDireita != NULL)
   {
-    if (strcmp(value, x->leftKey) < 0)
+    if (strcmp(value, x->chaveNaEsquerda) < 0)
     {
-      return searchTreeHelper(x->left, value, lines);
+      return searchTreeHelper(x->ponteiroDaEsquerda, value, lines);
     }
-    else if (strcmp(value, x->leftKey) > 0 && strcmp(value, x->rightKey) < 0)
+    else if (strcmp(value, x->chaveNaEsquerda) > 0 && strcmp(value, x->chaveNaDireita) < 0)
     {
-      return searchTreeHelper(x->middle, value, lines);
+      return searchTreeHelper(x->ponteiroDoMeio, value, lines);
     }
     else
     {
-      return searchTreeHelper(x->right, value, lines);
+      return searchTreeHelper(x->ponteiroDaDireita, value, lines);
     }
   }
   else
   {
-    if (strcmp(value, x->leftKey) < 0)
-      return searchTreeHelper(x->left, value, lines);
+    if (strcmp(value, x->chaveNaEsquerda) < 0)
+      return searchTreeHelper(x->ponteiroDaEsquerda, value, lines);
     else
-      return searchTreeHelper(x->middle, value, lines);
+      return searchTreeHelper(x->ponteiroDoMeio, value, lines);
   }
 }
 
@@ -351,9 +333,9 @@ int findHeight(Node *x)
     return 0;
   else
   {
-    int leftHeight = findHeight(x->left);
-    int rightHeight = findHeight(x->right);
-    int middleHeight = findHeight(x->middle);
+    int leftHeight = findHeight(x->ponteiroDaEsquerda);
+    int rightHeight = findHeight(x->ponteiroDaDireita);
+    int middleHeight = findHeight(x->ponteiroDoMeio);
 
     int maxHeight = leftHeight;
     if (rightHeight > maxHeight)
@@ -379,14 +361,14 @@ void freeNode(Node *node)
 {
   if (node != NULL)
   {
-    free(node->leftKey);
-    if (node->rightKey)
-      free(node->rightKey);
+    free(node->chaveNaEsquerda);
+    if (node->chaveNaDireita)
+      free(node->chaveNaDireita);
     freeLineArray(&node->leftLines);
     freeLineArray(&node->rightLines);
-    freeNode(node->left);
-    freeNode(node->middle);
-    freeNode(node->right);
+    freeNode(node->ponteiroDaEsquerda);
+    freeNode(node->ponteiroDoMeio);
+    freeNode(node->ponteiroDaDireita);
     free(node);
   }
 }
@@ -420,10 +402,10 @@ void printNode(Node *node)
 {
   if (node == NULL)
     return;
-  if (node->rightKey == NULL)
-    printf("[%s]", node->leftKey);
+  if (node->chaveNaDireita == NULL)
+    printf("[%s]", node->chaveNaEsquerda);
   else
-    printf("[%s|%s]", node->leftKey, node->rightKey);
+    printf("[%s|%s]", node->chaveNaEsquerda, node->chaveNaDireita);
 }
 
 // Calculate the position adjustment based on node type and position
@@ -433,11 +415,11 @@ int getPositionAdjustment(Node *parent, Node *current)
     return 0;
 
   // For two-node parent
-  if (parent->rightKey == NULL)
+  if (parent->chaveNaDireita == NULL)
   {
-    if (current == parent->left)
+    if (current == parent->ponteiroDaEsquerda)
       return -1;
-    if (current == parent->middle)
+    if (current == parent->ponteiroDoMeio)
       return 1;
   }
 
@@ -462,18 +444,18 @@ void printTreeLevel(Node *root, Node *parent, int level, int currentLevel, int s
     int childSpacing = spacing;
 
     // Adjust spacing based on whether it's a 2-node or 3-node
-    if (root->rightKey == NULL)
+    if (root->chaveNaDireita == NULL)
     {
       // For 2-node
-      printTreeLevel(root->left, root, level, currentLevel + 1, childSpacing);
-      printTreeLevel(root->middle, root, level, currentLevel + 1, childSpacing);
+      printTreeLevel(root->ponteiroDaEsquerda, root, level, currentLevel + 1, childSpacing);
+      printTreeLevel(root->ponteiroDoMeio, root, level, currentLevel + 1, childSpacing);
     }
     else
     {
       // For 3-node
-      printTreeLevel(root->left, root, level, currentLevel + 1, childSpacing);
-      printTreeLevel(root->middle, root, level, currentLevel + 1, childSpacing);
-      printTreeLevel(root->right, root, level, currentLevel + 1, childSpacing);
+      printTreeLevel(root->ponteiroDaEsquerda, root, level, currentLevel + 1, childSpacing);
+      printTreeLevel(root->ponteiroDoMeio, root, level, currentLevel + 1, childSpacing);
+      printTreeLevel(root->ponteiroDaDireita, root, level, currentLevel + 1, childSpacing);
     }
   }
 }
