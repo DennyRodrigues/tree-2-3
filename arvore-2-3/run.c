@@ -22,31 +22,31 @@ typedef struct Node
 // Arvore structure
 typedef struct
 {
-  Node *root;
-  char **words;  // Array to store all words
-  int wordCount; // Total number of words
-  int wordCapacity;
+  Node *raiz;
+  char **palavras; // Array para armazenar palavras
+  int quantidadePalavras; 
+  int capacidadePalavras;
 } Arvore;
 
 Node *CriarNovoNode(const char *x);
 bool verificaSeNodeEhFolha(Node *x);
 Node *adicionarNode(Node *x, Node *n);
-Node *inserirNaArvore(Arvore *arvore, const char *key, Node *root);
+Node *inserirNaArvore(Arvore *arvore, const char *key, Node *raiz);
 bool buscarNaArvore(Node *x, const char *value);
 int calcularAltura(Node *x);
 void freeNode(Node *node);
 void freeArvore(Arvore *arvore);
-void imprimirArvore(Node *root);
+void imprimirArvore(Node *raiz);
 Node *deletar(Arvore *arvore, const char *chave, Node *raiz);
 
 // Initialize arvore
 Arvore *CriarArvore()
 {
   Arvore *arvore = (Arvore *)malloc(sizeof(Arvore));
-  arvore->root = NULL;
-  arvore->words = (char **)malloc(sizeof(char *) * 1000); // Initial capacity
-  arvore->wordCount = 0;
-  arvore->wordCapacity = 1000;
+  arvore->raiz = NULL;
+  arvore->palavras = (char **)malloc(sizeof(char *) * 1000); // Initial capacity
+  arvore->quantidadePalavras = 0;
+  arvore->capacidadePalavras = 1000;
   return arvore;
 }
 
@@ -161,11 +161,11 @@ Node *adicionarNode(Node *x, Node *n)
   }
 }
 
-Node *inserirNaArvore(Arvore *arvore, const char *key, Node *root)
+Node *inserirNaArvore(Arvore *arvore, const char *key, Node *raiz)
 {
 
   // Cria o primeiro Node
-  if (root == NULL)
+  if (raiz == NULL)
   {
     Node *newNode = CriarNovoNode(key);
     newNode->ponteiroPai = NULL; // Raiz não tem ponteiroPai
@@ -173,18 +173,18 @@ Node *inserirNaArvore(Arvore *arvore, const char *key, Node *root)
   }
 
   // Caso o valor que está inserido é o mesmo que ja existe no node Raiz
-  if ((root->chaveNaEsquerda && strcmp(key, root->chaveNaEsquerda) == 0) ||
-      (root->chaveNaDireita && strcmp(key, root->chaveNaDireita) == 0))
+  if ((raiz->chaveNaEsquerda && strcmp(key, raiz->chaveNaEsquerda) == 0) ||
+      (raiz->chaveNaDireita && strcmp(key, raiz->chaveNaDireita) == 0))
   {
-    return root;
+    return raiz;
   }
 
-  if (verificaSeNodeEhFolha(root))
+  if (verificaSeNodeEhFolha(raiz))
   {
     Node *newNode = CriarNovoNode(key);
-    newNode->ponteiroPai = root; // Define o ponteiroPai do novo nó
-    Node *finalNode = adicionarNode(root, newNode);
-    if (finalNode != root)
+    newNode->ponteiroPai = raiz; // Define o ponteiroPai do novo nó
+    Node *finalNode = adicionarNode(raiz, newNode);
+    if (finalNode != raiz)
     {
       finalNode->ponteiroPai = NULL; // Se criou um novo nó raiz
     }
@@ -192,41 +192,41 @@ Node *inserirNaArvore(Arvore *arvore, const char *key, Node *root)
   }
 
   // Insert recursively
-  if (strcmp(key, root->chaveNaEsquerda) < 0)
+  if (strcmp(key, raiz->chaveNaEsquerda) < 0)
   {
-    Node *newNode = inserirNaArvore(arvore, key, root->ponteiroDaEsquerda);
-    if (newNode == root->ponteiroDaEsquerda)
-      return root;
+    Node *newNode = inserirNaArvore(arvore, key, raiz->ponteiroDaEsquerda);
+    if (newNode == raiz->ponteiroDaEsquerda)
+      return raiz;
     else
     {
-      Node *result = adicionarNode(root, newNode);
-      if (result != root)
+      Node *result = adicionarNode(raiz, newNode);
+      if (result != raiz)
         result->ponteiroPai = NULL; // Se criou novo nó raiz
       return result;
     }
   }
-  else if (root->chaveNaDireita == NULL || strcmp(key, root->chaveNaDireita) < 0)
+  else if (raiz->chaveNaDireita == NULL || strcmp(key, raiz->chaveNaDireita) < 0)
   {
-    Node *newNode = inserirNaArvore(arvore, key, root->ponteiroDoMeio);
-    if (newNode == root->ponteiroDoMeio)
-      return root;
+    Node *newNode = inserirNaArvore(arvore, key, raiz->ponteiroDoMeio);
+    if (newNode == raiz->ponteiroDoMeio)
+      return raiz;
     else
     {
-      Node *result = adicionarNode(root, newNode);
-      if (result != root)
+      Node *result = adicionarNode(raiz, newNode);
+      if (result != raiz)
         result->ponteiroPai = NULL;
       return result;
     }
   }
   else
   {
-    Node *newNode = inserirNaArvore(arvore, key, root->ponteiroDaDireita);
-    if (newNode == root->ponteiroDaDireita)
-      return root;
+    Node *newNode = inserirNaArvore(arvore, key, raiz->ponteiroDaDireita);
+    if (newNode == raiz->ponteiroDaDireita)
+      return raiz;
     else
     {
-      Node *result = adicionarNode(root, newNode);
-      if (result != root)
+      Node *result = adicionarNode(raiz, newNode);
+      if (result != raiz)
         result->ponteiroPai = NULL;
       return result;
     }
@@ -245,7 +245,7 @@ void buildArvore(Arvore *arvore, FILE *input)
 
   while (fgets(buffer, sizeof(buffer), input))
   {
-    imprimirArvore(arvore->root);
+    imprimirArvore(arvore->raiz);
 
     char *token = strtok(buffer, " \n");
     while (token != NULL)
@@ -263,21 +263,21 @@ void buildArvore(Arvore *arvore, FILE *input)
 
       if (len > 0)
       {
-        if (arvore->wordCount >= arvore->wordCapacity)
+        if (arvore->quantidadePalavras >= arvore->capacidadePalavras)
         {
-          arvore->wordCapacity *= 2;
-          arvore->words = realloc(arvore->words, sizeof(char *) * arvore->wordCapacity);
+          arvore->capacidadePalavras *= 2;
+          arvore->palavras = realloc(arvore->palavras, sizeof(char *) * arvore->capacidadePalavras);
         }
-        arvore->words[arvore->wordCount] = strdup(word);
-        arvore->wordCount++;
-        arvore->root = inserirNaArvore(arvore, word, arvore->root);
+        arvore->palavras[arvore->quantidadePalavras] = strdup(word);
+        arvore->quantidadePalavras++;
+        arvore->raiz = inserirNaArvore(arvore, word, arvore->raiz);
       }
       token = strtok(NULL, " \n");
     };
   }
 
   double totalTime = (double)(clock() - startTime) / CLOCKS_PER_SEC;
-  int arvoreHeight = calcularAltura(arvore->root);
+  int arvoreHeight = calcularAltura(arvore->raiz);
 
   printf("=====================================================\n");
   printf("- Built Arvore results (2-3 Arvore)\n");
@@ -324,8 +324,7 @@ bool buscarNaArvore(Node *x, const char *value)
 // Find height
 int calcularAltura(Node *x)
 {
-  if (x == NULL)
-    return 0;
+  if (x == NULL) return 0;
   else
   {
     int leftHeight = calcularAltura(x->ponteiroDaEsquerda);
@@ -362,12 +361,12 @@ void freeArvore(Arvore *arvore)
 {
   if (arvore != NULL)
   {
-    for (int i = 0; i < arvore->wordCount; i++)
+    for (int i = 0; i < arvore->quantidadePalavras; i++)
     {
-      free(arvore->words[i]);
+      free(arvore->palavras[i]);
     }
-    free(arvore->words);
-    freeNode(arvore->root);
+    free(arvore->palavras);
+    freeNode(arvore->raiz);
     free(arvore);
   }
 }
@@ -389,9 +388,10 @@ void printNode(Node *node)
   if (node->chaveNaDireita == NULL)
   {
     printf("[%s]", node->chaveNaEsquerda);
-    if (node->ponteiroPai){
-      printf("ponteiroPai[%s]", node->ponteiroPai->chaveNaEsquerda);
-    }
+    // if (node->ponteiroPai)
+    // {
+    //   printf("ponteiroPai[%s]", node->ponteiroPai->chaveNaEsquerda);
+    // }
   }
   else
     printf("[%s|%s]", node->chaveNaEsquerda, node->chaveNaDireita);
@@ -415,149 +415,162 @@ int getPositionAdjustment(Node *parent, Node *current)
   return 0;
 }
 
-void printArvoreLevel(Node *root, Node *parent, int level, int currentLevel, int spacing)
+void printArvoreLevel(Node *raiz, Node *parent, int level, int currentLevel, int spacing)
 {
-  if (root == NULL)
+  if (raiz == NULL)
     return;
 
   if (level == currentLevel)
   {
-    int adjustment = getPositionAdjustment(parent, root);
+    int adjustment = getPositionAdjustment(parent, raiz);
     printSpaces(spacing);
-    printNode(root);
+    printNode(raiz);
     return;
   }
 
-  if (!verificaSeNodeEhFolha(root))
+  if (!verificaSeNodeEhFolha(raiz))
   {
     int childSpacing = spacing;
 
     // Adjust spacing based on whether it's a 2-node or 3-node
-    if (root->chaveNaDireita == NULL)
+    if (raiz->chaveNaDireita == NULL)
     {
       // For 2-node
-      printArvoreLevel(root->ponteiroDaEsquerda, root, level, currentLevel + 1, childSpacing);
-      printArvoreLevel(root->ponteiroDoMeio, root, level, currentLevel + 1, childSpacing);
+      printArvoreLevel(raiz->ponteiroDaEsquerda, raiz, level, currentLevel + 1, childSpacing);
+      printArvoreLevel(raiz->ponteiroDoMeio, raiz, level, currentLevel + 1, childSpacing);
     }
     else
     {
       // For 3-node
-      printArvoreLevel(root->ponteiroDaEsquerda, root, level, currentLevel + 1, childSpacing);
-      printArvoreLevel(root->ponteiroDoMeio, root, level, currentLevel + 1, childSpacing);
-      printArvoreLevel(root->ponteiroDaDireita, root, level, currentLevel + 1, childSpacing);
+      printArvoreLevel(raiz->ponteiroDaEsquerda, raiz, level, currentLevel + 1, childSpacing);
+      printArvoreLevel(raiz->ponteiroDoMeio, raiz, level, currentLevel + 1, childSpacing);
+      printArvoreLevel(raiz->ponteiroDaDireita, raiz, level, currentLevel + 1, childSpacing);
     }
   }
 }
 
-void imprimirArvore(Node *root)
+void imprimirArvore(Node *raiz)
 {
   printf("\n=== 2-3 Arvore Visualization ===\n\n");
 
-  int height = calcularAltura(root);
+  int height = calcularAltura(raiz);
   int initialSpacing = MAX_WIDTH / 2;
 
   for (int i = 0; i < height; i++)
   {
-    printArvoreLevel(root, NULL, i, 0, initialSpacing);
+    printArvoreLevel(raiz, NULL, i, 0, initialSpacing);
     printf("\n\n");
     initialSpacing /= 2;
   }
 }
 
-int getUserInput(Arvore *arvore)
+Node *reconstruirArvore(Arvore *arvore, const char *palavraRemovida)
+{
+  // Criar uma nova árvore temporária
+  Node *novaRaiz = NULL;
+
+  // Reconstrói a árvore com todas as palavras exceto a removida
+  for (int i = 0; i < arvore->quantidadePalavras; i++)
+  {
+    // Pula a palavra que deve ser removida
+    if (strcmp(arvore->palavras[i], palavraRemovida) == 0)
+    {
+      continue;
+    }
+    novaRaiz = inserirNaArvore(arvore, arvore->palavras[i], novaRaiz);
+  }
+
+  return novaRaiz;
+}
+
+int obterEntradaUsuario(Arvore *arvore)
 {
   int opcao;
-  char letra[100];
+  char palavra[100];
 
   printf("\nEscolha o que você deseja fazer com a árvore:\n");
   printf("1 para inserir\n");
-  printf("2 para deletar algum elemento\n");
+  printf("2 para deletar\n");
   printf("Opção: ");
 
   if (scanf("%d", &opcao) != 1)
   {
     while (getchar() != '\n')
-      ; // Clear input buffer
+      ; // Limpa buffer
     printf("Entrada inválida!\n");
     return 0;
   }
 
   if (opcao == 1)
   {
-    printf("Entre alguma palavra para adicionar na árvore: ");
-    if (scanf("%99s", letra) != 1)
+    printf("Digite a palavra para adicionar na árvore: ");
+    if (scanf("%99s", palavra) != 1)
     {
       printf("Erro na leitura da palavra!\n");
       return 0;
     }
 
-    // Insert word
-    if (arvore->wordCount >= arvore->wordCapacity)
+    // Verifica se precisa aumentar o array de palavras
+    if (arvore->quantidadePalavras >= arvore->capacidadePalavras)
     {
-      int newCapacity = arvore->wordCapacity * 2;
-      char **newWords = realloc(arvore->words, sizeof(char *) * newCapacity);
-      if (!newWords)
+      int novaCapacidade = arvore->capacidadePalavras * 2;
+      char **novasPalavras = realloc(arvore->palavras,
+                                     sizeof(char *) * novaCapacidade);
+
+      if (!novasPalavras)
       {
         printf("Erro de alocação de memória!\n");
         return 0;
       }
-      arvore->words = newWords;
-      arvore->wordCapacity = newCapacity;
+      arvore->palavras = novasPalavras;
+      arvore->capacidadePalavras = novaCapacidade;
     }
 
-    arvore->words[arvore->wordCount] = strdup(letra);
-    arvore->root = inserirNaArvore(arvore, letra, arvore->root);
-    arvore->wordCount++;
+    // Insere a palavra
+    arvore->palavras[arvore->quantidadePalavras] = strdup(palavra);
+    arvore->raiz = inserirNaArvore(arvore, palavra, arvore->raiz);
+    arvore->quantidadePalavras++;
 
-    printf("Palavra '%s' inserida com sucesso!\n", letra);
+    printf("Palavra '%s' inserida com sucesso!\n", palavra);
   }
   else if (opcao == 2)
   {
-    printf("Entre qual elemento você deseja deletar: ");
-    if (scanf("%99s", letra) != 1)
+    printf("Digite a palavra que deseja deletar: ");
+    if (scanf("%99s", palavra) != 1)
     {
       printf("Erro na leitura da palavra!\n");
       return 0;
     }
 
-    // Check if word exists in arvore
-    Node *current = arvore->root;
-    bool wordFound = false;
-
-    // Search for word in words array
-    for (int i = 0; i < arvore->wordCount; i++)
+    // Verifica se a palavra existe e a remove do array
+    bool palavraEncontrada = false;
+    for (int i = 0; i < arvore->quantidadePalavras; i++)
     {
-      if (strcmp(arvore->words[i], letra) == 0)
+      if (strcmp(arvore->palavras[i], palavra) == 0)
       {
-        wordFound = true;
-        // Remove word from words array
-        free(arvore->words[i]);
-        for (int j = i; j < arvore->wordCount - 1; j++)
+        palavraEncontrada = true;
+        free(arvore->palavras[i]);
+
+        // Move todas as palavras uma posição para trás
+        for (int j = i; j < arvore->quantidadePalavras - 1; j++)
         {
-          arvore->words[j] = arvore->words[j + 1];
+          arvore->palavras[j] = arvore->palavras[j + 1];
         }
-        arvore->wordCount--;
+        arvore->quantidadePalavras--;
         break;
       }
     }
 
-    if (!wordFound)
+    if (!palavraEncontrada)
     {
-      printf("Palavra '%s' não encontrada na árvore!\n", letra);
+      printf("Palavra '%s' não encontrada na árvore!\n", palavra);
       return 0;
     }
 
-    // // Deletar da Arvoré
-    // // Node *newRoot = deletar(arvore, letra, arvore->root);
-    // if (newRoot != arvore->root)
-    // {
-    //   arvore->root = newRoot;
-    //   printf("Palavra '%s' deletada com sucesso!\n", letra);
-    // }
-    // else if (!wordFound)
-    // {
-    //   printf("Erro ao deletar a palavra '%s'!\n", letra);
-    // }
+    // Libera a árvore atual e reconstrói
+    freeNode(arvore->raiz);
+    arvore->raiz = reconstruirArvore(arvore, palavra);
+    printf("Palavra '%s' deletada com sucesso!\n", palavra);
   }
   else
   {
@@ -566,6 +579,7 @@ int getUserInput(Arvore *arvore)
 
   return 0;
 }
+
 int main(int argc, char *argv[])
 {
   Arvore *arvore = CriarArvore();
@@ -577,13 +591,13 @@ int main(int argc, char *argv[])
     fclose(input);
 
     // Print arvore with improved visualization
-    imprimirArvore(arvore->root);
+    imprimirArvore(arvore->raiz);
 
     while (1)
     {
-      getUserInput(arvore);
+      obterEntradaUsuario(arvore);
 
-      imprimirArvore(arvore->root);
+      imprimirArvore(arvore->raiz);
     }
 
     freeArvore(arvore);
