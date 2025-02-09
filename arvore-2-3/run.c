@@ -16,6 +16,7 @@ typedef struct Node
   struct Node *ponteiroDaEsquerda;
   struct Node *ponteiroDoMeio;
   struct Node *ponteiroDaDireita;
+  struct Node *ponteiroPai;
 } Node;
 
 // Arvore structure
@@ -32,12 +33,11 @@ bool verificaSeNodeEhFolha(Node *x);
 Node *adicionarNode(Node *x, Node *n);
 Node *inserirNaArvore(Arvore *arvore, const char *key, Node *root);
 bool buscarNaArvore(Node *x, const char *value);
-void imprimirArvoreHelper(FILE *out, Node *x);
 int calcularAltura(Node *x);
 void freeNode(Node *node);
 void freeArvore(Arvore *arvore);
 void imprimirArvore(Node *root);
-
+Node *deletar(Arvore *arvore, const char *chave, Node *raiz);
 
 // Initialize arvore
 Arvore *CriarArvore()
@@ -50,7 +50,7 @@ Arvore *CriarArvore()
   return arvore;
 }
 
-// Create new node
+// Cria um novo Node que não contém nhum filho no momento
 Node *CriarNovoNode(const char *x)
 {
   Node *t = (Node *)malloc(sizeof(Node));
@@ -62,7 +62,7 @@ Node *CriarNovoNode(const char *x)
   return t;
 }
 
-// Check if node is leaf
+// Verifica se o Node não contém nenhum filho(está na ponta da arvoré)
 bool verificaSeNodeEhFolha(Node *x)
 {
   return (x->ponteiroDaEsquerda == NULL && x->ponteiroDoMeio == NULL && x->ponteiroDaDireita == NULL);
@@ -73,7 +73,6 @@ Node *adicionarNode(Node *x, Node *n)
 {
   // strcmp compara duas palavras (X e N). Se forem iguais, retorna 0. Se forem diferentes, retorna um valor positivo se X for maior que N (o primeiro caractere diferente tem ASCII maior) ou negativo se X for menor que N (primeiro caractere diferente tem ASCII menor).
   // Resumindo: Ajuda a organizar palavras de acordo com o ASCII, permitindo organizar as palavras em ordem alfabética sem precisar criar loops para checkar cada letra da palavra.
-
   if (x->chaveNaDireita == NULL)
   {
     if (strcmp(x->chaveNaEsquerda, n->chaveNaEsquerda) < 0)
@@ -81,6 +80,11 @@ Node *adicionarNode(Node *x, Node *n)
       x->chaveNaDireita = strdup(n->chaveNaEsquerda);
       x->ponteiroDoMeio = n->ponteiroDaEsquerda;
       x->ponteiroDaDireita = n->ponteiroDoMeio;
+      // Atualiza os pais dos filhos
+      if (n->ponteiroDaEsquerda)
+        n->ponteiroDaEsquerda->ponteiroPai = x;
+      if (n->ponteiroDoMeio)
+        n->ponteiroDoMeio->ponteiroPai = x;
     }
     else
     {
@@ -89,6 +93,11 @@ Node *adicionarNode(Node *x, Node *n)
       x->ponteiroDaDireita = x->ponteiroDoMeio;
       x->ponteiroDoMeio = n->ponteiroDoMeio;
       x->ponteiroDaEsquerda = n->ponteiroDaEsquerda;
+      // Atualiza os pais dos filhos
+      if (n->ponteiroDaEsquerda)
+        n->ponteiroDaEsquerda->ponteiroPai = x;
+      if (n->ponteiroDoMeio)
+        n->ponteiroDoMeio->ponteiroPai = x;
     }
     free(n->chaveNaEsquerda);
     free(n);
@@ -101,6 +110,9 @@ Node *adicionarNode(Node *x, Node *n)
     Node *newNode = CriarNovoNode(x->chaveNaEsquerda);
     newNode->ponteiroDaEsquerda = n;
     newNode->ponteiroDoMeio = x;
+    // Atualiza os pais
+    n->ponteiroPai = newNode;
+    x->ponteiroPai = newNode;
     x->ponteiroDaEsquerda = x->ponteiroDoMeio;
     x->ponteiroDoMeio = x->ponteiroDaDireita;
     x->ponteiroDaDireita = NULL;
@@ -116,9 +128,18 @@ Node *adicionarNode(Node *x, Node *n)
     Node *newNode = CriarNovoNode(x->chaveNaDireita);
     newNode->ponteiroDaEsquerda = n->ponteiroDoMeio;
     newNode->ponteiroDoMeio = x->ponteiroDaDireita;
+    // Atualiza os pais
+    if (n->ponteiroDoMeio)
+      n->ponteiroDoMeio->ponteiroPai = newNode;
+    if (x->ponteiroDaDireita)
+      x->ponteiroDaDireita->ponteiroPai = newNode;
     x->ponteiroDoMeio = n->ponteiroDaEsquerda;
+    if (n->ponteiroDaEsquerda)
+      n->ponteiroDaEsquerda->ponteiroPai = x;
     n->ponteiroDoMeio = newNode;
+    newNode->ponteiroPai = n;
     n->ponteiroDaEsquerda = x;
+    x->ponteiroPai = n;
     free(x->chaveNaDireita);
     x->chaveNaDireita = NULL;
     x->ponteiroDaDireita = NULL;
@@ -130,6 +151,9 @@ Node *adicionarNode(Node *x, Node *n)
     Node *newNode = CriarNovoNode(x->chaveNaDireita);
     newNode->ponteiroDaEsquerda = x;
     newNode->ponteiroDoMeio = n;
+    // Atualiza os pais
+    x->ponteiroPai = newNode;
+    n->ponteiroPai = newNode;
     free(x->chaveNaDireita);
     x->chaveNaDireita = NULL;
     x->ponteiroDaDireita = NULL;
@@ -137,15 +161,18 @@ Node *adicionarNode(Node *x, Node *n)
   }
 }
 
-// Insert key into arvore
 Node *inserirNaArvore(Arvore *arvore, const char *key, Node *root)
 {
+
+  // Cria o primeiro Node
   if (root == NULL)
   {
     Node *newNode = CriarNovoNode(key);
+    newNode->ponteiroPai = NULL; // Raiz não tem ponteiroPai
     return newNode;
   }
 
+  // Caso o valor que está inserido é o mesmo que ja existe no node Raiz
   if ((root->chaveNaEsquerda && strcmp(key, root->chaveNaEsquerda) == 0) ||
       (root->chaveNaDireita && strcmp(key, root->chaveNaDireita) == 0))
   {
@@ -155,7 +182,12 @@ Node *inserirNaArvore(Arvore *arvore, const char *key, Node *root)
   if (verificaSeNodeEhFolha(root))
   {
     Node *newNode = CriarNovoNode(key);
+    newNode->ponteiroPai = root; // Define o ponteiroPai do novo nó
     Node *finalNode = adicionarNode(root, newNode);
+    if (finalNode != root)
+    {
+      finalNode->ponteiroPai = NULL; // Se criou um novo nó raiz
+    }
     return finalNode;
   }
 
@@ -166,7 +198,12 @@ Node *inserirNaArvore(Arvore *arvore, const char *key, Node *root)
     if (newNode == root->ponteiroDaEsquerda)
       return root;
     else
-      return adicionarNode(root, newNode);
+    {
+      Node *result = adicionarNode(root, newNode);
+      if (result != root)
+        result->ponteiroPai = NULL; // Se criou novo nó raiz
+      return result;
+    }
   }
   else if (root->chaveNaDireita == NULL || strcmp(key, root->chaveNaDireita) < 0)
   {
@@ -174,7 +211,12 @@ Node *inserirNaArvore(Arvore *arvore, const char *key, Node *root)
     if (newNode == root->ponteiroDoMeio)
       return root;
     else
-      return adicionarNode(root, newNode);
+    {
+      Node *result = adicionarNode(root, newNode);
+      if (result != root)
+        result->ponteiroPai = NULL;
+      return result;
+    }
   }
   else
   {
@@ -182,7 +224,12 @@ Node *inserirNaArvore(Arvore *arvore, const char *key, Node *root)
     if (newNode == root->ponteiroDaDireita)
       return root;
     else
-      return adicionarNode(root, newNode);
+    {
+      Node *result = adicionarNode(root, newNode);
+      if (result != root)
+        result->ponteiroPai = NULL;
+      return result;
+    }
   }
 }
 
@@ -340,7 +387,12 @@ void printNode(Node *node)
   if (node == NULL)
     return;
   if (node->chaveNaDireita == NULL)
+  {
     printf("[%s]", node->chaveNaEsquerda);
+    if (node->ponteiroPai){
+      printf("ponteiroPai[%s]", node->ponteiroPai->chaveNaEsquerda);
+    }
+  }
   else
     printf("[%s|%s]", node->chaveNaEsquerda, node->chaveNaDireita);
 }
@@ -412,7 +464,6 @@ void imprimirArvore(Node *root)
   }
 }
 
-}
 int getUserInput(Arvore *arvore)
 {
   int opcao;
@@ -496,17 +547,17 @@ int getUserInput(Arvore *arvore)
       return 0;
     }
 
-    // Delete from arvore
-    Node *newRoot = delete (arvore, letra, arvore->root);
-    if (newRoot != arvore->root)
-    {
-      arvore->root = newRoot;
-      printf("Palavra '%s' deletada com sucesso!\n", letra);
-    }
-    else if (!wordFound)
-    {
-      printf("Erro ao deletar a palavra '%s'!\n", letra);
-    }
+    // // Deletar da Arvoré
+    // // Node *newRoot = deletar(arvore, letra, arvore->root);
+    // if (newRoot != arvore->root)
+    // {
+    //   arvore->root = newRoot;
+    //   printf("Palavra '%s' deletada com sucesso!\n", letra);
+    // }
+    // else if (!wordFound)
+    // {
+    //   printf("Erro ao deletar a palavra '%s'!\n", letra);
+    // }
   }
   else
   {
