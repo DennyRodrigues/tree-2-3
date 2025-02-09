@@ -371,99 +371,195 @@ void freeArvore(Arvore *arvore)
   }
 }
 
-// Print spaces for alignment
-void printSpaces(int count)
+#define MAX_HEIGHT 10
+#define LARGURA_TELA 80
+#define ALTURA_TELA 20
+
+typedef struct
 {
-  for (int i = 0; i < count; i++)
+  char **tela;
+  int altura;
+  int largura;
+} TelaVisualizacao;
+
+// Função auxiliar para calcular o centro de um nó
+int calcularCentroNo(Node *node)
+{
+  if (node->chaveNaDireita)
   {
-    printf(" ");
+    return 5; // [A|B] = 5 caracteres
   }
+  return 3; // [A] = 3 caracteres
 }
 
-// Print a single node
-void printNode(Node *node)
+void desenharNo(TelaVisualizacao *tela, Node *node, int linha, int coluna)
 {
-  if (node == NULL)
+  if (!node)
     return;
-  if (node->chaveNaDireita == NULL)
+
+  char nodeStr[10];
+  if (node->chaveNaDireita)
   {
-    printf("[%s]", node->chaveNaEsquerda);
-    // if (node->ponteiroPai)
-    // {
-    //   printf("ponteiroPai[%s]", node->ponteiroPai->chaveNaEsquerda);
-    // }
+    sprintf(nodeStr, "[%s|%s]", node->chaveNaEsquerda, node->chaveNaDireita);
   }
   else
-    printf("[%s|%s]", node->chaveNaEsquerda, node->chaveNaDireita);
-}
-
-// Calculate the position adjustment based on node type and position
-int getPositionAdjustment(Node *parent, Node *current)
-{
-  if (parent == NULL)
-    return 0;
-
-  // For two-node parent
-  if (parent->chaveNaDireita == NULL)
   {
-    if (current == parent->ponteiroDaEsquerda)
-      return -1;
-    if (current == parent->ponteiroDoMeio)
-      return 1;
+    sprintf(nodeStr, "[%s]", node->chaveNaEsquerda);
   }
 
-  return 0;
-}
-
-void printArvoreLevel(Node *raiz, Node *parent, int level, int currentLevel, int spacing)
-{
-  if (raiz == NULL)
-    return;
-
-  if (level == currentLevel)
+  // Centraliza o nó na posição
+  int len = strlen(nodeStr);
+  int start = coluna - len / 2;
+  for (int i = 0; i < len; i++)
   {
-    int adjustment = getPositionAdjustment(parent, raiz);
-    printSpaces(spacing);
-    printNode(raiz);
-    return;
-  }
-
-  if (!verificaSeNodeEhFolha(raiz))
-  {
-    int childSpacing = spacing;
-
-    // Adjust spacing based on whether it's a 2-node or 3-node
-    if (raiz->chaveNaDireita == NULL)
+    if (start + i >= 0 && start + i < tela->largura)
     {
-      // For 2-node
-      printArvoreLevel(raiz->ponteiroDaEsquerda, raiz, level, currentLevel + 1, childSpacing);
-      printArvoreLevel(raiz->ponteiroDoMeio, raiz, level, currentLevel + 1, childSpacing);
+      tela->tela[linha][start + i] = nodeStr[i];
+    }
+  }
+}
+
+void desenharConexoes(TelaVisualizacao *tela, int linhaPai, int colunaPai,
+                      int linhaFilho, int colunaFilho, bool ehMeio, bool ehNoPaiDuplo)
+{
+  if (ehMeio)
+  {
+    // Centraliza a linha vertical baseado no tipo do nó pai
+    int ajuste = ehNoPaiDuplo ? 0 : 1;
+    for (int i = 1; i < linhaFilho - linhaPai; i++)
+    {
+      tela->tela[linhaPai + i][colunaPai + ajuste] = '|';
+    }
+  }
+  else
+  {
+    int distancia = abs(colunaFilho - colunaPai);
+    int direcao = (colunaFilho < colunaPai) ? -1 : 1;
+    // Sempre usa '/' para esquerda e '\' para direita, independente do tipo de nó
+    char simbolo = (direcao < 0) ? '/' : '\\';
+
+    // Ajusta o ponto inicial para nós simples
+    if (!ehNoPaiDuplo)
+    {
+      colunaPai += (direcao < 0) ? -1 : 1;
+    }
+
+    for (int i = 1; i < linhaFilho - linhaPai; i++)
+    {
+      int col = colunaPai + (direcao * i * distancia) / (linhaFilho - linhaPai);
+      if (col >= 0 && col < tela->largura)
+      {
+        tela->tela[linhaPai + i][col] = simbolo;
+      }
+    }
+  }
+}
+
+void desenharArvoreRecursivo(TelaVisualizacao *tela, Node *node, int nivel, int coluna)
+{
+  if (!node)
+    return;
+
+  int linha = nivel * 3;
+  bool ehNoDuplo = node->chaveNaDireita != NULL;
+  desenharNo(tela, node, linha, coluna);
+
+  if (!verificaSeNodeEhFolha(node))
+  {
+    int espacamento = 20 / (nivel + 1);
+
+    // Ajusta espaçamento baseado no tipo do nó
+    if (!ehNoDuplo)
+    {
+      espacamento = (espacamento * 4) / 5;
+    }
+
+    int colunaEsq = coluna - espacamento;
+    int colunaDir = coluna + espacamento;
+
+    // Desenha filho esquerdo
+    desenharArvoreRecursivo(tela, node->ponteiroDaEsquerda, nivel + 1, colunaEsq);
+    desenharConexoes(tela, linha, coluna, linha + 3, colunaEsq, false, ehNoDuplo);
+
+    if (ehNoDuplo)
+    {
+      // Para nó duplo [A|B]:
+      // - ponteiroDoMeio liga com a primeira chave
+      // - ponteiroDaDireita liga com a segunda chave
+      desenharArvoreRecursivo(tela, node->ponteiroDoMeio, nivel + 1, coluna);
+      desenharConexoes(tela, linha, coluna, linha + 3, coluna, true, ehNoDuplo);
+
+      desenharArvoreRecursivo(tela, node->ponteiroDaDireita, nivel + 1, colunaDir);
+      desenharConexoes(tela, linha, coluna, linha + 3, colunaDir, false, ehNoDuplo);
     }
     else
     {
-      // For 3-node
-      printArvoreLevel(raiz->ponteiroDaEsquerda, raiz, level, currentLevel + 1, childSpacing);
-      printArvoreLevel(raiz->ponteiroDoMeio, raiz, level, currentLevel + 1, childSpacing);
-      printArvoreLevel(raiz->ponteiroDaDireita, raiz, level, currentLevel + 1, childSpacing);
+      // Para nó simples [A]:
+      // - ponteiroDoMeio é tratado como filho direito
+      // - ponteiroDaDireita não é usado
+      desenharArvoreRecursivo(tela, node->ponteiroDoMeio, nivel + 1, colunaDir);
+      desenharConexoes(tela, linha, coluna, linha + 3, colunaDir, false, ehNoDuplo);
     }
   }
 }
 
 void imprimirArvore(Node *raiz)
 {
-  printf("\n=== 2-3 Arvore Visualization ===\n\n");
-
-  int height = calcularAltura(raiz);
-  int initialSpacing = MAX_WIDTH / 2;
-
-  for (int i = 0; i < height; i++)
+  if (!raiz)
   {
-    printArvoreLevel(raiz, NULL, i, 0, initialSpacing);
-    printf("\n\n");
-    initialSpacing /= 2;
+    printf("\n=== Árvore 2-3 Vazia ===\n");
+    return;
   }
+
+  TelaVisualizacao *tela = malloc(sizeof(TelaVisualizacao));
+  tela->altura = ALTURA_TELA;
+  tela->largura = LARGURA_TELA;
+
+  // Inicializa a tela com espaços
+  tela->tela = malloc(ALTURA_TELA * sizeof(char *));
+  for (int i = 0; i < ALTURA_TELA; i++)
+  {
+    tela->tela[i] = malloc(LARGURA_TELA * sizeof(char));
+    memset(tela->tela[i], ' ', LARGURA_TELA);
+  }
+
+  printf("\n=== Árvore 2-3 ===\n\n");
+
+  // Começa o desenho no centro da tela
+  desenharArvoreRecursivo(tela, raiz, 0, LARGURA_TELA / 2);
+
+  // Imprime a visualização
+  for (int i = 0; i < tela->altura; i++)
+  {
+    bool linhaVazia = true;
+    for (int j = 0; j < tela->largura; j++)
+    {
+      if (tela->tela[i][j] != ' ')
+      {
+        linhaVazia = false;
+        break;
+      }
+    }
+    if (linhaVazia)
+      continue;
+
+    for (int j = 0; j < tela->largura; j++)
+    {
+      printf("%c", tela->tela[i][j]);
+    }
+    printf("\n");
+  }
+
+  // Libera a memória
+  for (int i = 0; i < tela->altura; i++)
+  {
+    free(tela->tela[i]);
+  }
+  free(tela->tela);
+  free(tela);
 }
 
+// Por enquanto, o delete exclui toda a árvore e cria uma nova com os valores antigos MENOS o valor que é para ser deletado.
 Node *reconstruirArvore(Arvore *arvore, const char *palavraRemovida)
 {
   // Criar uma nova árvore temporária
