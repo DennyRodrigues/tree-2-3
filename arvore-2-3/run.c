@@ -76,7 +76,9 @@ Node *adicionarNode(Node *noAtual, Node *novoNo)
 
   // Adiciona um novo nó a um nó existente, reorganizando as chaves e ponteiros conforme necessário
   // Se o nó x não tem chave na direita, podemos adicionar nele
-  if (noAtual->chaveNaDireita == NULL)
+  // Essa parte do código tem DUAS funções importantes: 
+  // Adicionar uma segunda chave em um nó que só tem uma chave
+  // é aqui que os nós "soltos"(que subiram de níveis inferiores)se encaixam na árvore principal 
   {
     // Se a chave do nó x é menor que a nova chave, adiciona à direita
     if (strcmp(noAtual->chaveNaEsquerda, novoNo->chaveNaEsquerda) < 0)
@@ -113,7 +115,7 @@ Node *adicionarNode(Node *noAtual, Node *novoNo)
     return noAtual;
   }
 
-  // Se o nó já tem duas chaves, precisamos dividir
+  // Se o nó já tem duas chaves, precisamos dividir, ocorre split, criamos nos "Soltos" que depois se encaixam na arvore
   // Caso 1: Adiciona à esquerda quando a nova chave é menor que a chave da esquerda
   if (strcmp(noAtual->chaveNaEsquerda, novoNo->chaveNaEsquerda) >= 0)
   {
@@ -328,20 +330,25 @@ void exibirPercursoDaArvore(Node *noAtual)
 bool buscarNaArvore(Node *noAtual, const char *value)
 {
   exibirPercursoDaArvore(noAtual);
+
+  // Caso essa função seja chamada em um nó NULL, Isso significa que o elemento que está sendo procurado não existe. 
   if (noAtual == NULL)
   {
     return false;
   }
 
-  // Primeiro verifica se o valor está no nó atual
+  // Primeiro verifica se o valor está dentro do nó atual, compara com o valor da esquerda e da direita
   if (strcmp(value, noAtual->chaveNaEsquerda) == 0 ||
       (noAtual->chaveNaDireita && strcmp(value, noAtual->chaveNaDireita) == 0))
   {
     return true;
   }
+
+  // Caso a função chegue na folhas da árvore, não vai mais ter para onde a função ir, então retornar falso indicando que o elemento não foi achado.
   if (verificaSeNodeEhFolha(noAtual))
     return false;
 
+  // Caso a àrvore tenha dois elementos e três filhos.
   if (noAtual->chaveNaDireita != NULL)
   {
     if (strcmp(value, noAtual->chaveNaEsquerda) < 0)
@@ -357,6 +364,7 @@ bool buscarNaArvore(Node *noAtual, const char *value)
       return buscarNaArvore(noAtual->ponteiroDaDireita, value);
     }
   }
+  // Caso a àrvore tenha apenas um valor e dois filhos
   else
   {
     if (strcmp(value, noAtual->chaveNaEsquerda) < 0)
