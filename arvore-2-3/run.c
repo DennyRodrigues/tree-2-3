@@ -196,7 +196,9 @@ Node *inserirNaArvore(Arvore *arvore, const char *key, Node *raiz)
     return raiz;
   }
 
-  // Se o nó atual é folha, insere diretamente nele
+  // CASO 3: INSERÇÃO EM NÓ FOLHA
+  // Se chegamos em um nó folha, podemos tentar inserir diretamente nele
+  // Caso o nó folha esteja cheio, ocorrerá split através do adicionarNode
   if (verificaSeNodeEhFolha(raiz))
   {
     Node *newNode = CriarNovoNode(key);
@@ -209,8 +211,11 @@ Node *inserirNaArvore(Arvore *arvore, const char *key, Node *raiz)
     return finalNode;
   }
 
-  // Irá inserir um novo nó de forma recursiva.
-  // irá avançar para a ESQUERDA da árvore caso a key que irá ser inserida é menor
+  // CASO 4: NAVEGAÇÃO RECURSIVA
+  // Não é folha, então precisamos navegar até encontrar onde inserir
+
+  // CASO 4.1: NAVEGAÇÃO PARA ESQUERDA
+  // Se a chave é menor que a chave da esquerda, desce pela subárvore esquerda
   if (strcmp(key, raiz->chaveNaEsquerda) < 0)
   {
     Node *newNode = inserirNaArvore(arvore, key, raiz->ponteiroDaEsquerda);
@@ -224,7 +229,9 @@ Node *inserirNaArvore(Arvore *arvore, const char *key, Node *raiz)
       return result;
     }
   }
-  // irá avançar para o MEIO da árvore caso a key que irá ser inserida é maior E o NODE É SIMPLES
+
+  // CASO 4.2: NAVEGAÇÃO PARA O MEIO
+  // Se o nó é simples OU a chave é menor que a chave da direita
   else if (raiz->chaveNaDireita == NULL || strcmp(key, raiz->chaveNaDireita) < 0)
   {
     Node *newNode = inserirNaArvore(arvore, key, raiz->ponteiroDoMeio);
@@ -238,7 +245,8 @@ Node *inserirNaArvore(Arvore *arvore, const char *key, Node *raiz)
       return result;
     }
   }
-  // irá avançar usando o ponteiro da DIREITA caso a key inserida é maior E o NODE É COMPOSTO
+  // CASO 4.3: NAVEGAÇÃO PARA DIREITA
+  // Se o nó é composto (tem duas chaves) e a chave é maior que ambas
   else
   {
     Node *newNode = inserirNaArvore(arvore, key, raiz->ponteiroDaDireita);
