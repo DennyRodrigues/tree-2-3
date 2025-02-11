@@ -76,16 +76,16 @@ Node *adicionarNode(Node *noAtual, Node *novoNo)
 
   // Adiciona um novo nó a um nó existente, reorganizando as chaves e ponteiros conforme necessário
   // Se o nó x não tem chave na direita, podemos adicionar nele
-  // Essa parte do código tem DUAS funções importantes: 
+  // Essa parte do código tem DUAS funções importantes:
   // Adicionar uma segunda chave em um nó que só tem uma chave
-  // é aqui que os nós "soltos"(que subiram de níveis inferiores)se encaixam na árvore principal 
+  // é aqui que os nós "soltos"(que subiram de níveis inferiores)se encaixam na árvore principal
+  if (noAtual->chaveNaDireita == NULL)
   {
-    // Se a chave do nó x é menor que a nova chave, adiciona à direita
+    // Se a chave do nó atual é menor que a nova chave, adiciona à direita
     if (strcmp(noAtual->chaveNaEsquerda, novoNo->chaveNaEsquerda) < 0)
     {
       noAtual->chaveNaDireita = strdup(novoNo->chaveNaEsquerda);
-      // Reorganiza os ponteiros: o ponteiro esquerdo do novo nó vai para o meio
-      // e o ponteiro do meio do novo nó vai para a direita
+      // Reorganiza os ponteiros
       noAtual->ponteiroDoMeio = novoNo->ponteiroDaEsquerda;
       noAtual->ponteiroDaDireita = novoNo->ponteiroDoMeio;
       // Atualiza os ponteiros pai dos filhos
@@ -94,7 +94,7 @@ Node *adicionarNode(Node *noAtual, Node *novoNo)
       if (novoNo->ponteiroDoMeio)
         novoNo->ponteiroDoMeio->ponteiroPai = noAtual;
     }
-    // Se a chave do nó x é maior, move ela para a direita e coloca a nova chave na esquerda
+    // Se a chave do nó atual é maior, move ela para a direita e coloca a nova chave na esquerda
     else
     {
       noAtual->chaveNaDireita = strdup(noAtual->chaveNaEsquerda);
@@ -115,18 +115,17 @@ Node *adicionarNode(Node *noAtual, Node *novoNo)
     return noAtual;
   }
 
-  // Se o nó já tem duas chaves, precisamos dividir, ocorre split, criamos nos "Soltos" que depois se encaixam na arvore
+  // Se o nó já tem duas chaves, precisamos dividir
   // Caso 1: Adiciona à esquerda quando a nova chave é menor que a chave da esquerda
   if (strcmp(noAtual->chaveNaEsquerda, novoNo->chaveNaEsquerda) >= 0)
   {
     Node *newNode = CriarNovoNode(noAtual->chaveNaEsquerda);
-    // O novo nó terá o nó n como filho esquerdo e x como filho do meio
     newNode->ponteiroDaEsquerda = novoNo;
     newNode->ponteiroDoMeio = noAtual;
     // Atualiza os ponteiros pai
     novoNo->ponteiroPai = newNode;
     noAtual->ponteiroPai = newNode;
-    // Reorganiza o nó x
+    // Reorganiza o nó atual
     noAtual->ponteiroDaEsquerda = noAtual->ponteiroDoMeio;
     noAtual->ponteiroDoMeio = noAtual->ponteiroDaDireita;
     noAtual->ponteiroDaDireita = NULL;
@@ -139,7 +138,6 @@ Node *adicionarNode(Node *noAtual, Node *novoNo)
   // Caso 2: Adiciona no meio quando a nova chave está entre as duas chaves existentes
   else if (strcmp(noAtual->chaveNaDireita, novoNo->chaveNaEsquerda) >= 0)
   {
-    // Processo similar, mas reorganizando para inserção no meio
     Node *newNode = CriarNovoNode(noAtual->chaveNaDireita);
     newNode->ponteiroDaEsquerda = novoNo->ponteiroDoMeio;
     newNode->ponteiroDoMeio = noAtual->ponteiroDaDireita;
@@ -163,21 +161,18 @@ Node *adicionarNode(Node *noAtual, Node *novoNo)
   // Caso 3: Adiciona à direita quando a nova chave é maior que ambas as chaves
   else
   {
-    {
-      Node *newNode = CriarNovoNode(noAtual->chaveNaDireita);
-      newNode->ponteiroDaEsquerda = noAtual;
-      newNode->ponteiroDoMeio = novoNo;
-      // Atualiza os pais
-      noAtual->ponteiroPai = newNode;
-      novoNo->ponteiroPai = newNode;
-      free(noAtual->chaveNaDireita);
-      noAtual->chaveNaDireita = NULL;
-      noAtual->ponteiroDaDireita = NULL;
-      return newNode;
-    }
+    Node *newNode = CriarNovoNode(noAtual->chaveNaDireita);
+    newNode->ponteiroDaEsquerda = noAtual;
+    newNode->ponteiroDoMeio = novoNo;
+    // Atualiza os pais
+    noAtual->ponteiroPai = newNode;
+    novoNo->ponteiroPai = newNode;
+    free(noAtual->chaveNaDireita);
+    noAtual->chaveNaDireita = NULL;
+    noAtual->ponteiroDaDireita = NULL;
+    return newNode;
   }
 }
-
 // Função principal de inserção que mantém as propriedades da árvore 2-3
 Node *inserirNaArvore(Arvore *arvore, const char *key, Node *raiz)
 {
@@ -339,7 +334,7 @@ bool buscarNaArvore(Node *noAtual, const char *value)
 {
   exibirPercursoDaArvore(noAtual);
 
-  // Caso essa função seja chamada em um nó NULL, Isso significa que o elemento que está sendo procurado não existe. 
+  // Caso essa função seja chamada em um nó NULL, Isso significa que o elemento que está sendo procurado não existe.
   if (noAtual == NULL)
   {
     return false;
@@ -380,6 +375,68 @@ bool buscarNaArvore(Node *noAtual, const char *value)
     else
       return buscarNaArvore(noAtual->ponteiroDoMeio, value);
   }
+}
+
+// Pré-ordem: visita a raiz, depois subárvore esquerda, meio e direita
+void percorrerPreOrdem(Node *noAtual)
+{
+  if (noAtual == NULL)
+    return;
+
+  // Visita o nó atual (imprime as chaves)
+  printf("[%s", noAtual->chaveNaEsquerda);
+  if (noAtual->chaveNaDireita)
+    printf("|%s", noAtual->chaveNaDireita);
+  printf("] ");
+
+  // Percorre os filhos da esquerda para direita
+  percorrerPreOrdem(noAtual->ponteiroDaEsquerda);
+  percorrerPreOrdem(noAtual->ponteiroDoMeio);
+  if (noAtual->chaveNaDireita) // Se tem duas chaves, tem terceiro filho
+    percorrerPreOrdem(noAtual->ponteiroDaDireita);
+}
+
+// Em-ordem: visita subárvore esquerda, primeira chave, subárvore meio,
+// segunda chave (se existir), subárvore direita (se existir)
+void percorrerEmOrdem(Node *noAtual)
+{
+  if (noAtual == NULL)
+    return;
+
+  // Visita subárvore esquerda
+  percorrerEmOrdem(noAtual->ponteiroDaEsquerda);
+
+  // Visita primeira chave
+  printf("%s ", noAtual->chaveNaEsquerda);
+
+  // Visita subárvore do meio
+  percorrerEmOrdem(noAtual->ponteiroDoMeio);
+
+  // Se tiver segunda chave, visita ela e subárvore direita
+  if (noAtual->chaveNaDireita)
+  {
+    printf("%s ", noAtual->chaveNaDireita);
+    percorrerEmOrdem(noAtual->ponteiroDaDireita);
+  }
+}
+
+// Pós-ordem: visita todas as subárvores primeiro, depois a raiz
+void percorrerPosOrdem(Node *noAtual)
+{
+  if (noAtual == NULL)
+    return;
+
+  // Percorre todos os filhos primeiro
+  percorrerPosOrdem(noAtual->ponteiroDaEsquerda);
+  percorrerPosOrdem(noAtual->ponteiroDoMeio);
+  if (noAtual->chaveNaDireita)
+    percorrerPosOrdem(noAtual->ponteiroDaDireita);
+
+  // Depois visita o nó atual
+  printf("[%s", noAtual->chaveNaEsquerda);
+  if (noAtual->chaveNaDireita)
+    printf("|%s", noAtual->chaveNaDireita);
+  printf("] ");
 }
 
 // Find height
@@ -650,6 +707,7 @@ int obterEntradaUsuario(Arvore *arvore)
   printf("1 para inserir\n");
   printf("2 para procurar algum elemento\n");
   printf("3 para deletar\n");
+  printf("4 para percorrer a árvore\n");
   printf("Opção: ");
 
   if (scanf("%d", &opcao) != 1)
@@ -736,7 +794,43 @@ int obterEntradaUsuario(Arvore *arvore)
     arvore->raiz = reconstruirArvore(arvore, palavra);
     printf("Palavra '%s' deletada com sucesso!\n", palavra);
   }
+  else if (opcao == 4)
+  {
+    printf("\nEscolha o tipo de percurso:\n");
+    printf("1 - Pré-ordem\n");
+    printf("2 - Em-ordem\n");
+    printf("3 - Pós-ordem\n");
+    printf("Opção: ");
 
+    int tipoPercurso;
+    if (scanf("%d", &tipoPercurso) != 1)
+    {
+      while (getchar() != '\n')
+        ;
+      printf("Entrada inválida!\n");
+      return 0;
+    }
+
+    printf("\nPercurso: ");
+    switch (tipoPercurso)
+    {
+    case 1:
+      printf("Pré-ordem: ");
+      percorrerPreOrdem(arvore->raiz);
+      break;
+    case 2:
+      printf("Em-ordem: ");
+      percorrerEmOrdem(arvore->raiz);
+      break;
+    case 3:
+      printf("Pós-ordem: ");
+      percorrerPosOrdem(arvore->raiz);
+      break;
+    default:
+      printf("Opção inválida!\n");
+    }
+    printf("\n");
+  }
   else
   {
     printf("Opção inválida!\n");
