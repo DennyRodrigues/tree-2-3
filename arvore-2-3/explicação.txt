@@ -28,7 +28,7 @@ Inserindo 'E':
 
                             
                             
-1. inserirNaArvore(arvore, "E", raiz=[B])
+1.  (arvore, "E", raiz=[B])
     // Não é NULL
     // Não é duplicata
     // Não é folha

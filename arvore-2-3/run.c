@@ -661,6 +661,8 @@ Node *reconstruirArvore(Arvore *arvore, const char *palavraRemovida)
   return novaRaiz;
 }
 
+
+
 int obterEntradaUsuario(Arvore *arvore)
 {
   int opcao;

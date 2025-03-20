@@ -11,6 +11,8 @@ struct No
   int altura;
 };
 
+
+
 // Função para obter a altura do nó
 int obterAltura(struct No *n)
 {
@@ -36,6 +38,16 @@ struct No *criarNo(int chave)
 int max(int a, int b) { return (a > b) ? a : b; }
 
 // Função para obter o fator de balanceamento de um nó
+// Descrição:
+// Calcula o fator de balanceamento de um nó, que é a diferença entre as alturas das subárvores esquerda e direita.
+
+// Lógica:
+
+// Se o nó for NULL, retorna 0.
+// Caso contrário, subtrai a altura da subárvore direita da altura da subárvore esquerda.
+// Esse fator é usado para verificar se a árvore precisa de balanceamento (deve estar entre -1 e 1).
+
+
 int obterFatorBalanceamento(struct No *n)
 {
   if (n == NULL)
@@ -44,7 +56,18 @@ int obterFatorBalanceamento(struct No *n)
 }
 
 // Função de rotação à direita
-struct No *rotacaoDireita(struct No *y)
+
+// Descrição : Realiza uma rotação à direita em torno de um nó y.
+
+//  Lógica :
+//     x se torna a nova raiz da subárvore.O filho direito de
+//     x(T2) passa a ser o filho esquerdo de y.
+//    x se torna a nova raiz da subárvore e 
+//    y passa a ser seu filho direito.
+//    As alturas dos nós são atualizadas.
+
+    struct No *
+    rotacaoDireita(struct No *y)
 {
   struct No *x = y->esquerda;
   struct No *T2 = x->direita;
@@ -56,6 +79,16 @@ struct No *rotacaoDireita(struct No *y)
 }
 
 // Função de rotação à esquerda
+// Descrição:
+// Realiza uma rotação à esquerda em torno de um nó x.
+
+// Lógica:
+
+// y se torna a nova raiz da subárvore.
+// O filho esquerdo de y (T2) passa a ser o filho direito de x.
+// y se torna a nova raiz e x passa a ser seu filho esquerdo.
+// As alturas dos nós são atualizadas.
+
 struct No *rotacaoEsquerda(struct No *x)
 {
   struct No *y = x->direita;
@@ -68,6 +101,18 @@ struct No *rotacaoEsquerda(struct No *x)
 }
 
 // Função para inserir uma chave na Árvore AVL
+
+// Descrição:
+// Insere um novo nó na árvore AVL e ajusta a estrutura para manter o balanceamento.
+
+// Lógica:
+
+// Se o nó for NULL, cria um novo nó com a chave fornecida.
+// Se a chave for menor que a chave do nó atual, insere recursivamente na subárvore esquerda.
+// Se for maior, insere na subárvore direita.
+// Após a inserção, atualiza a altura do nó.
+// Calcula o fator de balanceamento e aplica rotações se necessário.
+
 struct No *inserir(struct No *no, int chave)
 {
   if (no == NULL)
@@ -166,6 +211,7 @@ void exibirArvore(struct No *raiz, int espaco)
 }
 
 // Função para encontrar o nó com valor mínimo
+// Percorre a árvore sempre para a esquerda até encontrar o nó mais à esquerda.
 struct No *noValorMinimo(struct No *no)
 {
   struct No *atual = no;
@@ -192,6 +238,29 @@ int removerNo(struct No **raizPtr, int chave)
 
 
 // Esta é a função interna que realiza a remoção real
+// Descrição:
+// Remove um nó da árvore AVL e mantém o balanceamento.
+
+// Lógica:
+
+// Caso a chave seja menor, chama remover() para a subárvore esquerda.
+// Caso a chave seja maior, chama remover() para a subárvore direita.
+// Caso contrário, encontrou o nó a ser removido:
+// Se tiver um ou nenhum filho, ajusta os ponteiros e libera a memória.
+// Se tiver dois filhos, encontra o menor valor da subárvore direita, copia a chave para o nó atual e remove o sucessor.
+// Atualiza a altura do nó.
+// Verifica o balanceamento e aplica rotações, se necessário.
+
+
+// Quando removemos um nó que tem dois filhos, seguimos esses passos:
+
+// Encontramos o menor valor da subárvore direita (o sucessor in-order).
+// Copiamos esse valor para o nó que estamos removendo.
+// Removemos o sucessor real da árvore.
+// Atualizamos a altura do nó.
+// Verificamos o balanceamento e aplicamos rotações se necessário.
+
+
 struct No *remover(struct No *raiz, int chave)
 {
   // Passo 1: Realizar a remoção padrão de BST
